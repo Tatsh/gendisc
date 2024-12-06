@@ -1,0 +1,12 @@
+*.path-list.txt
+*~
+.*_cache/
+.coverage
+.directory
+.pnp.*
+/.yarn/install-state.gz
+/dist/
+__pycache__/
+generate-*.sh
+htmlcov/
+node_modules/

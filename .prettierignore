@@ -1,0 +1,14 @@
+*.jsonnet
+*.path-list.txt
+*~
+.*_cache/
+.coverage
+.directory
+.pnp.*
+/.yarn/**/*.cjs
+/.yarn/install-state.gz
+/dist/
+__pycache__/
+generate-*.sh
+htmlcov/
+node_modules/
