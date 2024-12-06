@@ -70,7 +70,7 @@ def main(path: str,
                                                         encoding='utf-8')
                 (output_dir_p / sh_filename).write_text(rf"""#!/usr/bin/env bash
 find '{path}' -type f -name .directory -delete
-echo 'Size: {total / 1024 ** 3} GiB'
+echo 'Size: {total / 1024 ** 3:.02f} GiB'
 mkisofs -graft-points -volid '{volid}' -appid gendisc -sysid LINUX -rational-rock \
     -no-cache-inodes -udf -full-iso9660-filenames -disable-deep-relocation -iso-level 3 \
     -path-list '{output_dir_p}/{pl_filename}' \
@@ -88,7 +88,8 @@ udisksctl unmount --no-user-interaction --object-path "block_devices/$(basename 
 udisksctl loop-delete --no-user-interaction -b "${{loop_dev}}"
 cdrecord 'dev={drive}' gracetime=2 -v driveropts=burnfree speed=4 -eject -sao '{iso_file}'
 eject -t
-wait-for-disc -w 15 '{drive}'
+delay 30
+# wait-for-disc -w 15 '{drive}'
 this_sum=$(pv '{drive}' | sha256sum)
 expected_sum=$(< '{iso_file}.sha256sum')
 if [[ "$this_sum" != "$expected_sum" ]]; then
