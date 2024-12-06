@@ -92,7 +92,7 @@ delay 30
 # wait-for-disc -w 15 '{drive}'
 this_sum=$(pv '{drive}' | sha256sum)
 expected_sum=$(< '{iso_file}.sha256sum')
-if [[ "$this_sum" != "$expected_sum" ]]; then
+if [[ "${{this_sum}}" != "${{expected_sum}}" ]]; then
     echo 'Burnt disc is invalid!'
     exit 1
 else
