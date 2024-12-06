@@ -31,12 +31,12 @@ log = logging.getLogger(__name__)
     '--disc-type',
     default='bdxl',
     help='Disc type (bd = Blu-ray, *dl = dual layer, *xl = triple layer, *ql = quadruple-layer).',
-    type=click.Choice(['bd', 'bd-dl', 'bdxl', 'bd-ql', 'dvd', 'dvd-dl']))
+    type=click.Choice(['bd', 'bd-dl', 'bd-xl', 'bd-ql', 'dvd', 'dvd-dl']))
 def main(path: str,
          prefix: str,
          output_dir: str = '.',
          starting_index: int = 0,
-         disc_type: str = 'bdxl',
+         disc_type: str = 'bd-xl',
          drive: str = '/dev/sr0',
          *,
          debug: bool = False) -> None:
