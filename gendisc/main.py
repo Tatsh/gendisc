@@ -17,32 +17,36 @@ log = logging.getLogger(__name__)
 
 @click.command(context_settings={'help_option_names': ('-h', '--help')})
 @click.argument('path')
-@click.option('-p', '--prefix', required=True)
-@click.option('-i', '--starting-index', type=int, default=1)
-@click.option('-d', '--debug', help='Enable debug logging.', is_flag=True)
-@click.option('-o', '--output-dir', type=click.Path(file_okay=False), default='.')
-@click.option('-d',
+@click.option('-D',
               '--drive',
-              type=click.Path(dir_okay=False),
               default='/dev/sr0',
-              help='Drive path.')
-@click.option(
-    '-t',
-    '--disc-type',
-    default='bdxl',
-    help='Disc type (bd = Blu-ray, *dl = dual layer, *xl = triple layer, *ql = quadruple-layer).',
-    type=click.Choice(['bd', 'bd-dl', 'bd-xl', 'bd-ql', 'dvd', 'dvd-dl']))
+              help='Drive path.',
+              type=click.Path(dir_okay=False))
+@click.option('-d', '--debug', help='Enable debug logging.', is_flag=True)
+@click.option('-i',
+              '--starting-index',
+              default=1,
+              help='Index to start with (defaults to 1).',
+              metavar='INDEX',
+              type=click.IntRange(1))
+@click.option('-o',
+              '--output-dir',
+              default='.',
+              help='Output directory. Will be created if it does not exist.',
+              type=click.Path(file_okay=False))
+@click.option('-p', '--prefix', help='Prefix for volume ID and files.')
 def main(path: str,
-         prefix: str,
+         prefix: str | None = None,
          output_dir: str = '.',
          starting_index: int = 0,
-         disc_type: str = 'bd-xl',
          drive: str = '/dev/sr0',
          *,
          debug: bool = False) -> None:
     """Make a file listing filling up a disc."""
     logging.basicConfig(level=logging.DEBUG if debug else logging.ERROR)
     l_path = len(str(Path(path).resolve(strict=True).parent))
+    if not prefix:
+        prefix = Path(path).name
     output_dir_p = Path(output_dir).resolve()
     output_dir_p.mkdir(parents=True, exist_ok=True)
 
@@ -56,7 +60,7 @@ def main(path: str,
         def append_set() -> None:
             nonlocal current_set, sets
             if current_set:
-                index = len(sets) + (starting_index or 1)
+                index = len(sets) + starting_index
                 volid = f'{prefix}-{index:02d}'
                 fn_prefix = f'{prefix}-{index:03d}'
                 pl_filename = f'{fn_prefix}.path-list.txt'
