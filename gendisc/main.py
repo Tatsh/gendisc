@@ -70,6 +70,7 @@ def main(path: str,
                                                         encoding='utf-8')
                 (output_dir_p / sh_filename).write_text(rf"""#!/usr/bin/env bash
 find '{path}' -type f -name .directory -delete
+echo 'Size: {total / 1024 ** 3} GiB'
 mkisofs -graft-points -volid '{volid}' -appid gendisc -sysid LINUX -rational-rock \
     -no-cache-inodes -udf -full-iso9660-filenames -disable-deep-relocation -iso-level 3 \
     -path-list '{output_dir_p}/{pl_filename}' \
