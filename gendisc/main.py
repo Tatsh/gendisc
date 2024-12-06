@@ -70,11 +70,11 @@ def main(path: str,
                                                         encoding='utf-8')
                 (output_dir_p / sh_filename).write_text(rf"""#!/usr/bin/env bash
 find '{path}' -type f -name .directory -delete
-echo 'Size: {total / 1024 ** 3:.02f} GiB'
 mkisofs -graft-points -volid '{volid}' -appid gendisc -sysid LINUX -rational-rock \
     -no-cache-inodes -udf -full-iso9660-filenames -disable-deep-relocation -iso-level 3 \
     -path-list '{output_dir_p}/{pl_filename}' \
     -o '{iso_file}'
+echo 'Size: {total / 1024 ** 3:.02f} GiB'
 pv '{iso_file}' | sha256sum > '{iso_file}.sha256sum'
 loop_dev=$(udisksctl loop-setup --no-user-interaction -r -f '{iso_file}' 2>&1 |
     rev | awk '{{ print $1 }}' | rev | cut -d. -f1)
