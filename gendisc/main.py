@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from shlex import quote
 import logging
 import subprocess as sp
 
@@ -89,6 +90,8 @@ if [[ "$this_sum" != "$expected_sum" ]]; then
     echo 'Burnt disc is invalid!'
     exit 1
 else
+    rm '{iso_file}'
+    echo trash {" ".join(quote(x) for x in (y.rsplit("=", 1)[-1] for y in current_set))}
     echo 'OK.'
 fi
 eject
