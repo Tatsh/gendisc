@@ -673,6 +673,7 @@ local manifestYaml(value) =
           Issues: '%s/issues' % repository_uri,
         },
         dependencies: {
+          click: '^8.1.7',
           python: '>=3.%s,<4' % min_python_minor_version,
           'python-fsutil': '^0.14.1',
         },

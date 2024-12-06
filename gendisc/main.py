@@ -148,7 +148,8 @@ eject
                 reset()
                 continue
             total = next_total
-            current_set.append(f'{dir_[l_path + 1:].replace("=", "\\=")}={dir_}')
+            fixed = dir_[l_path + 1:].replace('=', '\\=')
+            current_set.append(f'{fixed}={dir_}')
 
         append_set()
 
