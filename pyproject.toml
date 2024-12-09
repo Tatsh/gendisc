@@ -74,7 +74,7 @@ python-fsutil = "^0.14.1"
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-commitizen = "^4.0.0"
+commitizen = "^4.1.0"
 mypy = "^1.13.0"
 ruff = "^0.8.0"
 yapf = "^0.43.0"
