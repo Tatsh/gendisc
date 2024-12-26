@@ -676,6 +676,9 @@ local manifestYaml(value) =
           click: '^8.1.7',
           python: '>=3.%s,<4' % min_python_minor_version,
           'python-fsutil': '^0.14.1',
+          tqdm: '^4.67.1',
+          wakepy: '^0.10.1',
+          wand: '^0.6.13',
         },
         group: {
           dev: {
