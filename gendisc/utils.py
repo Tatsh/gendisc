@@ -11,7 +11,14 @@ from wand.font import Font
 from wand.image import Image
 import fsutil
 
-from .constants import BLURAY_QUADRUPLE_LAYER_SIZE_BYTES, BLURAY_TRIPLE_LAYER_SIZE_BYTES
+from .constants import (
+    BLURAY_DUAL_LAYER_SIZE_BYTES,
+    BLURAY_QUADRUPLE_LAYER_SIZE_BYTES,
+    BLURAY_SINGLE_LAYER_SIZE_BYTES,
+    BLURAY_TRIPLE_LAYER_SIZE_BYTES,
+    CD_R_BYTES,
+    DVD_R_DUAL_LAYER_SIZE_BYTES,
+)
 
 log = logging.getLogger(__name__)
 
@@ -92,6 +99,23 @@ class DirectorySplitter:
         self.reset()
         self.next_total = self.size
 
+    def get_disc_type(self) -> str:  # noqa: PLR0911
+        if self.total <= CD_R_BYTES:
+            return 'CD-R'
+        if self.total <= DVD_R_DUAL_LAYER_SIZE_BYTES:
+            return 'DVD-R'
+        if self.total <= DVD_R_DUAL_LAYER_SIZE_BYTES:
+            return 'DVD-R DL'
+        if self.total <= BLURAY_SINGLE_LAYER_SIZE_BYTES:
+            return 'BD-R'
+        if self.total <= BLURAY_DUAL_LAYER_SIZE_BYTES:
+            return 'BD-R DL'
+        if self.total <= BLURAY_TRIPLE_LAYER_SIZE_BYTES:
+            return 'BD-R XL (100 GB)'
+        if self.total <= BLURAY_QUADRUPLE_LAYER_SIZE_BYTES:
+            return 'BD-R XL (128 GB)'
+        raise ValueError
+
     def append_set(self) -> None:
         if self.current_set:
             dev_arg = quote(f'dev={self.drive}')
@@ -126,7 +150,7 @@ popd || exit 1
 udisksctl unmount --no-user-interaction --object-path "block_devices/$(basename "${{loop_dev}}")"
 udisksctl loop-delete --no-user-interaction -b "${{loop_dev}}"
 eject
-echo 'Insert a blank disc and press return.'
+echo 'Insert a blank disc ({self.get_disc_type()} or higher) and press return.'
 read
 delay 120
 cdrecord {dev_arg} gracetime=2 -v driveropts=burnfree speed=4 -eject -sao {quote(iso_file)}

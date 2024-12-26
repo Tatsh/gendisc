@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+CD_R_BYTES = 737_280_000
+
 DVD_R_SINGLE_LAYER_SIZE_BYTES = 4_707_319_808
 DVD_R_DUAL_LAYER_SIZE_BYTES = 8_543_666_176
 
