@@ -36,12 +36,14 @@ log = logging.getLogger(__name__)
               type=click.Path(file_okay=False))
 @click.option('-p', '--prefix', help='Prefix for volume ID and files.')
 @click.option('-r', '--delete', help='Issue rm commands instead of trash.', is_flag=True)
+@click.option('--cross-fs', help='Allow crossing file systems.', is_flag=True)
 def main(path: str,
          drive: str = '/dev/sr0',
          output_dir: str = '.',
          prefix: str | None = None,
          starting_index: int = 0,
          *,
+         cross_fs: bool = False,
          debug: bool = False,
          delete: bool = False) -> None:
     """Make a file listing filling up a disc."""
@@ -52,5 +54,10 @@ def main(path: str,
     output_dir_p = Path(output_dir).resolve()
     output_dir_p.mkdir(parents=True, exist_ok=True)
     with keep.running():
-        DirectorySplitter(path, prefix or Path(path).name, 'rm -rf' if delete else 'trash', drive,
-                          output_dir_p, starting_index).split()
+        DirectorySplitter(path,
+                          prefix or Path(path).name,
+                          'rm -rf' if delete else 'trash',
+                          drive,
+                          output_dir_p,
+                          starting_index,
+                          cross_fs=cross_fs).split()

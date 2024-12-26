@@ -51,6 +51,12 @@ def get_dir_size(path: str) -> int:
     return size
 
 
+def is_cross_fs(dir_: str) -> bool:
+    return dir_ in [
+        x.split()[1] for x in Path('/proc/mounts').read_text(encoding='utf-8').splitlines()
+    ]
+
+
 class DirectorySplitter:
     def __init__(self,
                  path: Path | str,
@@ -58,7 +64,10 @@ class DirectorySplitter:
                  delete_command: str = 'trash',
                  drive: str = '/dev/sr0',
                  output_dir: Path | str = '.',
-                 starting_index: int = 1) -> None:
+                 starting_index: int = 1,
+                 *,
+                 cross_fs: bool = False) -> None:
+        self.cross_fs = cross_fs
         self.current_set: list[str] = []
         self.delete_command = delete_command
         self.drive = drive
@@ -150,13 +159,19 @@ echo 'Move disc to printer.'
                        text=True,
                        capture_output=True).stdout.splitlines()[1:]),
                            key=lambda x: not Path(x).is_dir()):
+            if not self.cross_fs and is_cross_fs(dir_):
+                log.debug('Not processing %s because it is another file system.', dir_)
+                continue
             log.debug('Calculating size: %s', dir_)
             type_ = 'Directory'
             try:
                 self.size = get_dir_size(dir_)
             except NotADirectoryError:
                 type_ = 'File'
-                self.size = get_file_size(dir_)
+                try:
+                    self.size = get_file_size(dir_)
+                except OSError:
+                    continue
             self.next_total = self.total + self.size
             log.debug('%s: %s - %s', type_, dir_, convert_size_bytes_to_string(self.size))
             log.debug('Current total: %s / %s', convert_size_bytes_to_string(self.next_total),
@@ -180,8 +195,13 @@ echo 'Move disc to printer.'
                         dir_)
                     continue
                 log.debug('Directory %s too large for Blu-ray. Splitting separately.', dir_)
-                DirectorySplitter(dir_, f'{self.prefix}-{Path(dir_).name}', self.delete_command,
-                                  self.drive, self.output_dir_p, self.starting_index).split()
+                DirectorySplitter(dir_,
+                                  f'{self.prefix}-{Path(dir_).name}',
+                                  self.delete_command,
+                                  self.drive,
+                                  self.output_dir_p,
+                                  self.starting_index,
+                                  cross_fs=self.cross_fs).split()
                 self.reset()
                 continue
             self.total = self.next_total

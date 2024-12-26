@@ -71,6 +71,7 @@ platformdirs
 pmap
 popd
 poweriso
+proc
 pushd
 pycache
 pydocstyle
