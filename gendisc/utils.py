@@ -20,10 +20,13 @@ from .constants import (
     DVD_R_DUAL_LAYER_SIZE_BYTES,
 )
 
+__all__ = ('DirectorySplitter', 'generate_label_image')
+
 log = logging.getLogger(__name__)
 
 convert_size_bytes_to_string = cache(fsutil.convert_size_bytes_to_string)
 get_file_size = cache(fsutil.get_file_size)
+isdir = cache(os.path.isdir)
 islink = cache(os.path.islink)
 path_join = cache(os.path.join)
 quote = cache(shlex.quote)
@@ -45,7 +48,7 @@ def generate_label_image(contents: Sequence[str], filename: str) -> None:
 @cache
 def get_dir_size(path: str) -> int:
     size = 0
-    if not fsutil.is_dir(path):
+    if not isdir(path):
         raise NotADirectoryError
     for basepath, _, filenames in tqdm(walk(path), desc=f'Calculating size of {path}', unit=' dir'):
         for filename in filenames:
