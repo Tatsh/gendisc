@@ -1,12 +1,14 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from functools import cache
 from pathlib import Path
+from typing import overload
 import logging
 import os
 import shlex
 import subprocess as sp
 
 from tqdm import tqdm
+from typing_extensions import override
 from wand.font import Font
 from wand.image import Image
 import fsutil
@@ -24,6 +26,52 @@ __all__ = ('DirectorySplitter', 'generate_label_image')
 
 log = logging.getLogger(__name__)
 
+
+class LazyMounts(Sequence[str]):
+    def __init__(self) -> None:
+        self._mounts: list[str] | None = None
+
+    @staticmethod
+    def _read() -> list[str]:
+        return [x.split()[1] for x in Path('/proc/mounts').read_text(encoding='utf-8').splitlines()]
+
+    def initialize(self) -> None:
+        if self._mounts is None:
+            self.reload()
+
+    def reload(self) -> None:
+        self._mounts = self._read()
+
+    @property
+    def mounts(self) -> list[str]:
+        self.initialize()
+        assert self._mounts is not None
+        return self._mounts
+
+    @override
+    @overload
+    def __getitem__(self, index_or_slice: int) -> str:
+        ...
+
+    @override
+    @overload
+    def __getitem__(self, index_or_slice: slice) -> Sequence[str]:
+        ...
+
+    @override
+    def __getitem__(self, index_or_slice: int | slice) -> str | Sequence[str]:
+        self.initialize()
+        assert self._mounts is not None
+        return self._mounts[index_or_slice]
+
+    @override
+    def __len__(self) -> int:
+        self.initialize()
+        assert self._mounts is not None
+        return len(self._mounts)
+
+
+MOUNTS = LazyMounts()
 convert_size_bytes_to_string = cache(fsutil.convert_size_bytes_to_string)
 get_file_size = cache(fsutil.get_file_size)
 isdir = cache(os.path.isdir)
@@ -33,11 +81,12 @@ quote = cache(shlex.quote)
 walk = cache(os.walk)
 
 
-def generate_label_image(contents: Sequence[str], filename: str) -> None:
+def generate_label_image(contents: Iterable[str], filename: str) -> None:
     with Image() as img:
         img.background_color = 'white'
         img.font = Font('Noto', 20)
-        img.read(filename='label: Your Curved Text  Your Curved Text ')
+        contents_str = '  '.join(contents)
+        img.read(filename=f'label: {contents_str} ')
         img.virtual_pixel = 'white'
         # 360 degree arc, rotated -90 degrees
         img.distort('arc', (360, -90))
@@ -62,9 +111,7 @@ def get_dir_size(path: str) -> int:
 
 
 def is_cross_fs(dir_: str) -> bool:
-    return dir_ in [
-        x.split()[1] for x in Path('/proc/mounts').read_text(encoding='utf-8').splitlines()
-    ]
+    return dir_ in MOUNTS
 
 
 class DirectorySplitter:
