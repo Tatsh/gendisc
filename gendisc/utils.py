@@ -58,6 +58,7 @@ def get_dir_size(path: str) -> int:
             filepath = path_join(basepath, filename)
             if not islink(filepath):
                 try:
+                    log.debug('Getting file size for %s.', filepath)
                     size += get_file_size(filepath)
                 except OSError:
                     log.exception(
