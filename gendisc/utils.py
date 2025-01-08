@@ -14,12 +14,12 @@ from wand.image import Image
 import fsutil
 
 from .constants import (
-    BLURAY_DUAL_LAYER_SIZE_BYTES,
-    BLURAY_QUADRUPLE_LAYER_SIZE_BYTES,
-    BLURAY_SINGLE_LAYER_SIZE_BYTES,
-    BLURAY_TRIPLE_LAYER_SIZE_BYTES,
-    CD_R_BYTES,
-    DVD_R_DUAL_LAYER_SIZE_BYTES,
+    BLURAY_DUAL_LAYER_SIZE_BYTES_ADJUSTED,
+    BLURAY_QUADRUPLE_LAYER_SIZE_BYTES_ADJUSTED,
+    BLURAY_SINGLE_LAYER_SIZE_BYTES_ADJUSTED,
+    BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED,
+    CD_R_BYTES_ADJUSTED,
+    DVD_R_DUAL_LAYER_SIZE_BYTES_ADJUSTED,
 )
 
 __all__ = ('DirectorySplitter', 'generate_label_image', 'get_disc_type', 'is_cross_fs')
@@ -119,19 +119,19 @@ def is_cross_fs(dir_: str) -> bool:
 
 
 def get_disc_type(total: int) -> str:  # noqa: PLR0911
-    if total <= CD_R_BYTES:
+    if total <= CD_R_BYTES_ADJUSTED:
         return 'CD-R'
-    if total <= DVD_R_DUAL_LAYER_SIZE_BYTES:
+    if total <= DVD_R_DUAL_LAYER_SIZE_BYTES_ADJUSTED:
         return 'DVD-R'
-    if total <= DVD_R_DUAL_LAYER_SIZE_BYTES:
+    if total <= DVD_R_DUAL_LAYER_SIZE_BYTES_ADJUSTED:
         return 'DVD-R DL'
-    if total <= BLURAY_SINGLE_LAYER_SIZE_BYTES:
+    if total <= BLURAY_SINGLE_LAYER_SIZE_BYTES_ADJUSTED:
         return 'BD-R'
-    if total <= BLURAY_DUAL_LAYER_SIZE_BYTES:
+    if total <= BLURAY_DUAL_LAYER_SIZE_BYTES_ADJUSTED:
         return 'BD-R DL'
-    if total <= BLURAY_TRIPLE_LAYER_SIZE_BYTES:
+    if total <= BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED:
         return 'BD-R XL (100 GB)'
-    if total <= BLURAY_QUADRUPLE_LAYER_SIZE_BYTES:
+    if total <= BLURAY_QUADRUPLE_LAYER_SIZE_BYTES_ADJUSTED:
         return 'BD-R XL (128 GB)'
     raise ValueError
 
@@ -158,11 +158,11 @@ class DirectorySplitter:
         self._sets: list[list[str]] = []
         self._size = 0
         self._starting_index = starting_index
-        self._target_size = BLURAY_TRIPLE_LAYER_SIZE_BYTES
+        self._target_size = BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED
         self._total = 0
 
     def _reset(self) -> None:
-        self._target_size = BLURAY_TRIPLE_LAYER_SIZE_BYTES
+        self._target_size = BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED
         self._current_set = []
         self._total = 0
 
@@ -257,17 +257,17 @@ echo 'Move disc to printer.'
                       convert_size_bytes_to_string(self._target_size))
             if self._next_total > self._target_size:
                 log.debug('Current set with %s exceeds target size.', dir_)
-                if self._target_size == BLURAY_TRIPLE_LAYER_SIZE_BYTES:
+                if self._target_size == BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED:
                     log.debug('Trying quad layer.')
-                    self._target_size = BLURAY_QUADRUPLE_LAYER_SIZE_BYTES
+                    self._target_size = BLURAY_QUADRUPLE_LAYER_SIZE_BYTES_ADJUSTED
                     if self._next_total > self._target_size:
                         log.debug('Still too large. Appending to next set.')
                         self._too_large()
                 else:
                     self._too_large()
             if (self._next_total > self._target_size
-                    and self._target_size == BLURAY_TRIPLE_LAYER_SIZE_BYTES
-                    and self._next_total > BLURAY_QUADRUPLE_LAYER_SIZE_BYTES):
+                    and self._target_size == BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED
+                    and self._next_total > BLURAY_QUADRUPLE_LAYER_SIZE_BYTES_ADJUSTED):
                 if type_ == 'File':
                     log.warning(
                         'File %s too large for largest Blu-ray disc. It will not be processed.',
