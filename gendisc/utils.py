@@ -96,11 +96,11 @@ class LazyMounts(Sequence[str]):
 
     @override
     @overload
-    def __getitem__(self, index_or_slice: slice) -> Sequence[str]:
+    def __getitem__(self, index_or_slice: slice) -> list[str]:
         ...
 
     @override
-    def __getitem__(self, index_or_slice: int | slice) -> str | Sequence[str]:
+    def __getitem__(self, index_or_slice: int | slice) -> str | list[str]:
         self.initialize()
         assert self._mounts is not None
         return self._mounts[index_or_slice]
@@ -134,7 +134,8 @@ def get_disc_type(total: int) -> str:  # noqa: PLR0911
         return 'BD-R XL (100 GB)'
     if total <= BLURAY_QUADRUPLE_LAYER_SIZE_BYTES_ADJUSTED:
         return 'BD-R XL (128 GB)'
-    raise ValueError
+    msg = 'Disc size exceeds maximum supported size.'
+    raise ValueError(msg)
 
 
 class DirectorySplitter:
