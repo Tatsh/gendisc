@@ -836,13 +836,13 @@ dev = ["pre-commit", "pytest-asyncio", "tox"]
 
 [[package]]
 name = "python-fsutil"
-version = "0.14.1"
+version = "0.15.0"
 description = "high-level file-system operations for lazy devs."
 optional = false
 python-versions = "*"
 files = [
-    {file = "python-fsutil-0.14.1.tar.gz", hash = "sha256:8fb204fa8059f37bdeee8a1dc0fff010170202ea47c4225ee71bb3c26f3997be"},
-    {file = "python_fsutil-0.14.1-py3-none-any.whl", hash = "sha256:0d45e623f0f4403f674bdd8ae7aa7d24a4b3132ea45c65416bd2865e6b20b035"},
+    {file = "python_fsutil-0.15.0-py3-none-any.whl", hash = "sha256:8ae31def522916e35caf67723b8526fe6e5fcc1e160ea2dc23c845567708ca6e"},
+    {file = "python_fsutil-0.15.0.tar.gz", hash = "sha256:b51d8ab7ee218314480ea251fff7fef513be4fbccfe72a5af4ff2954f8a4a2c4"},
 ]
 
 [[package]]
@@ -1370,4 +1370,4 @@ tomli = {version = ">=2.0.1", markers = "python_version < \"3.11\""}
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "83ee596cac37024d433b9cb5e574f566660b6ac58d7d122c46589f148365098f"
+content-hash = "43a68fd4a0e254c1ec9551295288fe0f3050315fd85657ce10459f8b6ea7ca54"
