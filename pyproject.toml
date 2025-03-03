@@ -81,7 +81,7 @@ commitizen = "^4.2.2"
 mypy = "^1.15.0"
 ruff = "^0.9.7"
 yapf = "^0.43.0"
-types-tqdm = "^4.67.0.20241221"
+types-tqdm = "^4.67.0.20250301"
 
 [tool.poetry.group.docs]
 optional = true
