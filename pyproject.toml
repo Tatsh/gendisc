@@ -79,7 +79,7 @@ optional = true
 [tool.poetry.group.dev.dependencies]
 commitizen = "^4.2.2"
 mypy = "^1.15.0"
-ruff = "^0.9.7"
+ruff = "^0.9.9"
 yapf = "^0.43.0"
 types-tqdm = "^4.67.0.20250301"
 
