@@ -1,4 +1,4 @@
-*.path-list.txt
+*.log
 *~
 .*_cache/
 .coverage
@@ -6,7 +6,7 @@
 .pnp.*
 /.yarn/install-state.gz
 /dist/
+/docs/_build/
 __pycache__/
-generate-*.sh
 htmlcov/
 node_modules/

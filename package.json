@@ -24,8 +24,10 @@
       "yml"
     ],
     "ignorePaths": [
+      "*.1",
       "*.har",
       "*.log",
+      ".*_cache/**",
       ".coverage",
       ".directory",
       ".doctrees",
@@ -60,7 +62,7 @@
     "pyright": "^1.1.398",
     "yarn-audit-fix": "^10.1.0"
   },
-  "homepage": "https://github.com/Tatsh/gendisc",
+  "homepage": "https://tatsh.github.io/gendisc/",
   "keywords": ["iso", "media", "optical"],
   "license": "MIT",
   "markdownlint-cli2": {
@@ -76,7 +78,7 @@
     }
   },
   "name": "gendisc",
-  "packageManager": "yarn@4.5.0",
+  "packageManager": "yarn@4.9.0",
   "prettier": {
     "endOfLine": "lf",
     "iniSpaceAroundEquals": true,
@@ -104,14 +106,18 @@
     "url": "git@github.com:Tatsh/gendisc.git"
   },
   "scripts": {
-    "check-formatting": "prettier -c './**/*.cff' './**/*.json' './**/*.md' './**/*.toml' './**/*.y*ml' && poetry run yapf -rd .",
-    "check-spelling": "cspell --no-progress './**/*'  './**/.*'",
-    "format": "prettier -w './**/*.cff' './**/*.json' './**/*.md' './**/*.toml' './**/*.y*ml' && poetry run yapf -ri .",
+    "check-formatting": "yarn prettier -c . && poetry run yapf -prd . && yarn markdownlint-cli2 '**/*.md' '#node_modules'",
+    "check-spelling": "yarn cspell --no-progress './**/*'  './**/.*'",
+    "format": "prettier -w . && poetry run yapf -ri . && yarn markdownlint-cli2 --fix '**/*.md' '#node_modules'",
+    "gen-docs": "poetry run sphinx-build -T -E -b html -d docs/_build/doctrees -D language=en docs docs/_build/html",
+    "gen-manpage": "poetry run sphinx-build -T -E -b man -d docs/_build/doctrees -D language=en docs man",
     "mypy": "poetry run mypy",
     "qa": "yarn mypy . && yarn ruff . && yarn check-spelling && yarn check-formatting",
-    "ruff": "poetry run ruff check --fix",
+    "regen": "poetry run wiswa",
+    "ruff": "poetry run ruff check",
     "ruff:fix": "poetry run ruff check --fix",
-    "test": "poetry run pytest"
+    "test": "poetry run pytest",
+    "test:cov": "yarn pytest --cov . --cov-report html --cov-report term-missing:skip-covered"
   },
   "version": "0.0.1"
 }
