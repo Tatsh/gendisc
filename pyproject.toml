@@ -89,7 +89,7 @@ click = "^8.1.8"
 python = ">=3.10,<3.14"
 python-fsutil = "^0.15.0"
 tqdm = "^4.67.1"
-wakepy = "^0.10.1"
+wakepy = "^0.10.2"
 wand = "^0.6.13"
 
 [tool.poetry.group]
