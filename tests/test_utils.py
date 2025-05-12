@@ -43,31 +43,31 @@ def test_is_cross_fs(mocker: MockerFixture) -> None:
 
 def test_directory_splitter_init(mocker_fs: None) -> None:
     splitter = DirectorySplitter('test_path', 'prefix')
-    assert splitter._prefix == 'prefix'
-    assert splitter._delete_command == 'trash'
-    assert splitter._drive == '/dev/sr0'
-    assert splitter._starting_index == 1
+    assert splitter._prefix == 'prefix'  # noqa: SLF001
+    assert splitter._delete_command == 'trash'  # noqa: SLF001
+    assert splitter._drive == '/dev/sr0'  # noqa: SLF001
+    assert splitter._starting_index == 1  # noqa: SLF001
 
 
 def test_directory_splitter_split(mocker_fs: None) -> None:
     splitter = DirectorySplitter('test_path', 'prefix')
     splitter.split()
-    assert len(splitter._sets) == 1
-    assert len(splitter._sets[0]) == 1
+    assert len(splitter._sets) == 1  # noqa: SLF001
+    assert len(splitter._sets[0]) == 1  # noqa: SLF001
 
 
 def test_directory_splitter_too_large(mocker_fs: None) -> None:
     splitter = DirectorySplitter('test_path', 'prefix')
-    splitter._size = 1024
-    splitter._too_large()
-    assert splitter._total == 0
-    assert len(splitter._current_set) == 0
+    splitter._size = 1024  # noqa: SLF001
+    splitter._too_large()  # noqa: SLF001
+    assert splitter._total == 0  # noqa: SLF001
+    assert len(splitter._current_set) == 0  # noqa: SLF001
 
 
 def test_directory_splitter_append_set(mocker_fs: None) -> None:
     splitter = DirectorySplitter('test_path', 'prefix')
-    splitter._current_set = ['file1', 'file2']
-    splitter._total = 2048
-    splitter._append_set()
-    assert len(splitter._sets) == 1
-    assert len(splitter._sets[0]) == 2
+    splitter._current_set = ['file1', 'file2']  # noqa: SLF001
+    splitter._total = 2048  # noqa: SLF001
+    splitter._append_set()  # noqa: SLF001
+    assert len(splitter._sets) == 1  # noqa: SLF001
+    assert len(splitter._sets[0]) == 2  # noqa: SLF001

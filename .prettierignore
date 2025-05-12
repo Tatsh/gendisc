@@ -1,6 +1,7 @@
 *.1
 *.jsonnet
 *.libjsonnet
+*.lock
 *.log
 *~
 .*_cache/

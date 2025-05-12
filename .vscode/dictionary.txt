@@ -4,6 +4,7 @@ autodoc
 bdic
 binaryornot
 bluray
+bsky
 buildid
 burnfree
 cachetextconv

@@ -9,8 +9,8 @@ import subprocess as sp
 
 from tqdm import tqdm
 from typing_extensions import override
-from wand.font import Font
-from wand.image import Image
+from wand.font import Font  # type: ignore[import-untyped]
+from wand.image import Image  # type: ignore[import-untyped]
 import fsutil
 
 from .constants import (
