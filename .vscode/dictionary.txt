@@ -1,4 +1,5 @@
 autodoc
+automodule
 bluray
 bsky
 burnfree

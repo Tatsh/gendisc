@@ -47,7 +47,7 @@ def main(path: str,
          cross_fs: bool = False,
          debug: bool = False,
          delete: bool = False) -> None:
-    """Make a file listing filling up a disc."""
+    """Make a file listing filling up discs."""
     logging.basicConfig(level=logging.DEBUG if debug else logging.ERROR)
     if debug:
         tqdm.__init__ = partialmethod(  # type: ignore[assignment,method-assign]

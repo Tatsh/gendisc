@@ -13,7 +13,7 @@ pip install gendisc
 ```plain
 Usage: gendisc [OPTIONS] PATH
 
-  Make a file listing filling up a disc.
+  Make a file listing filling up discs.
 
 Options:
   -p, --prefix TEXT               [required]

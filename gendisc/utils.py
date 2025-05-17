@@ -2,10 +2,17 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
-from typing import overload
+from typing import (
+    SupportsFloat,
+    SupportsIndex,
+    TypeAlias,
+    overload,
+)
 import logging
+import math
 import os
 import shlex
 import subprocess as sp
@@ -24,7 +31,8 @@ from .constants import (
     DVD_R_SINGLE_LAYER_SIZE_BYTES,
 )
 
-__all__ = ('DirectorySplitter', 'get_disc_type', 'is_cross_fs')
+__all__ = ('DirectorySplitter', 'Point', 'create_spiral_path', 'create_spiral_svg', 'get_disc_type',
+           'write_spiral_svg')
 
 log = logging.getLogger(__name__)
 
@@ -290,3 +298,257 @@ echo 'Move disc to printer.'
             self._current_set.append(f'{fixed}={dir_}')
 
         self._append_set()
+
+
+@dataclass
+class Point:
+    """Point class for SVG paths."""
+    x: float
+    """X coordinate."""
+    y: float
+    """Y coordinate."""
+
+
+def _line_intersection(m1: float, b1: float, m2: float, b2: float) -> Point:
+    """
+    Find the intersection of two lines.
+
+    Parameters
+    ----------
+    m1 : int
+        Slope of the first line.
+    b1 : int
+        Y-intercept of the first line.
+    m2 : int
+        Slope of the second line.
+    b2 : int
+        Y-intercept of the second line.
+
+    Returns
+    -------
+    Point
+        X and Y coordinates of the intersection point.
+
+    Raises
+    ------
+    ValueError
+        If the lines are parallel and do not intersect.
+    """
+    if m1 == m2:
+        msg = 'Lines are parallel and do not intersect.'
+        raise ValueError(msg)
+    x = (b2 - b1) / (m1 - m2)
+    y = m1 * x + b1
+    return Point(x, y)
+
+
+def _p_str(point: Point) -> str:
+    """
+    Convert a point to a string.
+
+    Parameters
+    ----------
+    point : tuple[int, int]
+        The point to convert.
+
+    Returns
+    -------
+    str
+        The point as a string.
+    """
+    return f'{point.x},{point.y} '
+
+
+_SupportsFloatOrIndex: TypeAlias = SupportsFloat | SupportsIndex
+
+
+def create_spiral_path(center: Point | None = None,
+                       start_radius: float = 0,
+                       space_per_loop: float = 25,
+                       start_theta: _SupportsFloatOrIndex = 0,
+                       end_theta: _SupportsFloatOrIndex = 2160,
+                       theta_step: _SupportsFloatOrIndex = 30) -> str:
+    """
+    Get a path string for a spiral in a SVG file.
+
+    Algorithm borrowed from `How to make a spiral in SVG? <https://stackoverflow.com/a/49099258/374110>`_.
+
+    Parameters
+    ----------
+    center : Point
+        The center of the spiral.
+    start_radius : float
+        The starting radius of the spiral.
+    space_per_loop : float
+        The space between each loop of the spiral.
+    start_theta : float
+        The starting angle of the spiral in degrees.
+    end_theta : float
+        The ending angle of the spiral in degrees.
+    theta_step : float
+        The step size of the angle in degrees.
+
+    Returns
+    -------
+    str
+        The path string for the spiral. Goes inside a ``<path>`` in the ``d`` attribute.
+    """
+    center = center or Point(400, 400)
+    # Rename spiral parameters for the formula r = a + bθ.
+    a = start_radius  # Start distance from center
+    b = space_per_loop / math.pi / 2  # Space between each loop
+    # Convert angles to radians.
+    old_theta = new_theta = math.radians(start_theta)
+    end_theta = math.radians(end_theta)
+    theta_step = math.radians(theta_step)
+    # Radii
+    new_r = a + b * new_theta
+    # Start and end points
+    old_point = Point(0, 0)
+    new_point = Point(center.x + new_r * math.cos(new_theta),
+                      center.y + new_r * math.sin(new_theta))
+    # Slopes of tangents
+    new_slope = ((b * math.sin(old_theta) + (a + b * new_theta) * math.cos(old_theta)) /
+                 (b * math.cos(old_theta) - (a + b * new_theta) * math.sin(old_theta)))
+    paths = f'M {_p_str(new_point)}'
+    while old_theta < end_theta - theta_step:
+        old_theta = new_theta
+        new_theta += theta_step
+        old_r = new_r
+        new_r = a + b * new_theta
+        old_point.x = new_point.x
+        old_point.y = new_point.y
+        new_point.x = center.x + new_r * math.cos(new_theta)
+        new_point.y = center.y + new_r * math.sin(new_theta)
+        # Slope calculation with the formula
+        # m := (b * sin(θ) + (a + b * θ) * cos(θ)) / (b * cos(θ) - (a + b * θ) * sin(θ))
+        a_plus_b_theta = a + b * new_theta
+        old_slope = new_slope
+        new_slope = ((b * math.sin(new_theta) + a_plus_b_theta * math.cos(new_theta)) /
+                     (b * math.cos(new_theta) - a_plus_b_theta * math.sin(new_theta)))
+
+        old_intercept = -(old_slope * old_r * math.cos(old_theta) - old_r * math.sin(old_theta))
+        new_intercept = -(new_slope * new_r * math.cos(new_theta) - new_r * math.sin(new_theta))
+        control_point = _line_intersection(old_slope, old_intercept, new_slope, new_intercept)
+        # Offset the control point by the center offset.
+        control_point.x += center.x
+        control_point.y += center.y
+        paths += f'Q {_p_str(control_point)}{_p_str(new_point)}'
+    return paths.strip()
+
+
+def create_spiral_svg(text: str,
+                      width: int = 400,
+                      height: int = 400,
+                      view_box: str = '0 0 800 800',
+                      font_size: int = 13,
+                      center: Point | None = None,
+                      start_radius: float = 0,
+                      space_per_loop: float = 25,
+                      start_theta: _SupportsFloatOrIndex = 0,
+                      end_theta: _SupportsFloatOrIndex = 2160,
+                      theta_step: _SupportsFloatOrIndex = 30,
+                      start_offset: float | str = 0) -> str:
+    """
+    Create a spiral SVG.
+
+    Parameters
+    ----------
+    text: str
+        The text to put in the spiral.
+    width : int
+        The width of the SVG.
+    height : int
+        The height of the SVG.
+    view_box : str
+        The view box of the SVG.
+    center : Point
+        The center of the spiral.
+    start_radius : float
+        The starting radius of the spiral.
+    space_per_loop : float
+        The space between each loop of the spiral.
+    start_theta : float
+        The starting angle of the spiral in degrees.
+    end_theta : float
+        The ending angle of the spiral in degrees.
+    theta_step : float
+        The step size of the angle in degrees.
+    start_offset: float | str
+        The starting offset of the text in the spiral. Can be a percentage (e.g. '50%') or a
+        number (e.g. 100). If a number, it is the distance from the start of the spiral in pixels.
+
+    Returns
+    -------
+    str
+        The SVG string for the spiral.
+    """
+    center = center or Point(400, 400)
+    path = create_spiral_path(center, start_radius, space_per_loop, start_theta, end_theta,
+                              theta_step)
+    return f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="{view_box}">
+  <style>
+    .small {{
+      font: {font_size}px sans-serif;
+    }}
+  </style>
+  <path id="spiral" d="{path}" fill="none" stroke="black" stroke-width="0" />
+  <text>
+    <textPath href="#spiral" class="small" startOffset="{start_offset}">
+    {text}
+    </textPath>
+  </text>
+</svg>""".strip()
+
+
+def write_spiral_svg(filename: str | Path,
+                     text: str,
+                     width: int = 400,
+                     height: int = 400,
+                     view_box: str = '0 0 800 800',
+                     font_size: int = 13,
+                     center: Point | None = None,
+                     start_radius: float = 0,
+                     space_per_loop: float = 25,
+                     start_theta: _SupportsFloatOrIndex = 0,
+                     end_theta: _SupportsFloatOrIndex = 2160,
+                     theta_step: _SupportsFloatOrIndex = 30,
+                     start_offset: float | str = 0) -> None:
+    """
+    Write a spiral SVG to a file.
+
+    Create a spiral SVG.
+
+    Parameters
+    ----------
+    filename : str | Path
+        The filename to write the SVG to.
+    text: str
+        The text to put in the spiral.
+    width : int
+        The width of the SVG.
+    height : int
+        The height of the SVG.
+    view_box : str
+        The view box of the SVG.
+    center : Point
+        The center of the spiral.
+    start_radius : float
+        The starting radius of the spiral.
+    space_per_loop : float
+        The space between each loop of the spiral.
+    start_theta : float
+        The starting angle of the spiral in degrees.
+    end_theta : float
+        The ending angle of the spiral in degrees.
+    theta_step : float
+        The step size of the angle in degrees.
+    start_offset: float | str
+        The starting offset of the text in the spiral. Can be a percentage (e.g. '50%') or a
+        number (e.g. 100). If a number, it is the distance from the start of the spiral in pixels.
+    """
+    filename = Path(filename)
+    spiral_svg = create_spiral_svg(text, width, height, view_box, font_size, center, start_radius,
+                                   space_per_loop, start_theta, end_theta, theta_step, start_offset)
+    filename.write_text(f'{spiral_svg}\n', encoding='utf-8')
