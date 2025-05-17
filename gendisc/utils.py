@@ -1,4 +1,7 @@
-from collections.abc import Iterable, Sequence
+"""Utilities."""
+from __future__ import annotations
+
+from collections.abc import Sequence
 from functools import cache
 from pathlib import Path
 from typing import overload
@@ -9,8 +12,6 @@ import subprocess as sp
 
 from tqdm import tqdm
 from typing_extensions import override
-from wand.font import Font  # type: ignore[import-untyped]
-from wand.image import Image  # type: ignore[import-untyped]
 import fsutil
 
 from .constants import (
@@ -20,9 +21,10 @@ from .constants import (
     BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED,
     CD_R_BYTES_ADJUSTED,
     DVD_R_DUAL_LAYER_SIZE_BYTES_ADJUSTED,
+    DVD_R_SINGLE_LAYER_SIZE_BYTES,
 )
 
-__all__ = ('DirectorySplitter', 'generate_label_image', 'get_disc_type', 'is_cross_fs')
+__all__ = ('DirectorySplitter', 'get_disc_type', 'is_cross_fs')
 
 log = logging.getLogger(__name__)
 
@@ -33,19 +35,6 @@ islink = cache(os.path.islink)
 path_join = cache(os.path.join)
 quote = cache(shlex.quote)
 walk = cache(os.walk)
-
-
-def generate_label_image(contents: Iterable[str], filename: str) -> None:
-    with Image() as img:
-        img.background_color = 'white'
-        img.font = Font('Noto', 20)
-        contents_str = '  '.join(contents)
-        img.read(filename=f'label: {contents_str} ')
-        img.virtual_pixel = 'white'
-        # 360 degree arc, rotated -90 degrees
-        img.distort('arc', (360, -90))
-        img.format = 'png'
-        img.save(filename=filename)
 
 
 @cache
@@ -91,12 +80,12 @@ class LazyMounts(Sequence[str]):
 
     @override
     @overload
-    def __getitem__(self, index_or_slice: int) -> str:
+    def __getitem__(self, index_or_slice: int) -> str:  # pragma: no cover
         ...
 
     @override
     @overload
-    def __getitem__(self, index_or_slice: slice) -> list[str]:
+    def __getitem__(self, index_or_slice: slice) -> list[str]:  # pragma: no cover
         ...
 
     @override
@@ -116,13 +105,22 @@ MOUNTS = LazyMounts()
 
 
 def is_cross_fs(dir_: str) -> bool:
+    """Check if the directory is on a different file system."""
     return dir_ in MOUNTS
 
 
 def get_disc_type(total: int) -> str:  # noqa: PLR0911
+    """
+    Get disc type based on total size.
+
+    Raises
+    ------
+    ValueError
+        If the total size exceeds the maximum supported size.
+    """
     if total <= CD_R_BYTES_ADJUSTED:
         return 'CD-R'
-    if total <= DVD_R_DUAL_LAYER_SIZE_BYTES_ADJUSTED:
+    if total <= DVD_R_SINGLE_LAYER_SIZE_BYTES:
         return 'DVD-R'
     if total <= DVD_R_DUAL_LAYER_SIZE_BYTES_ADJUSTED:
         return 'DVD-R DL'
@@ -139,6 +137,7 @@ def get_disc_type(total: int) -> str:  # noqa: PLR0911
 
 
 class DirectorySplitter:
+    """Split directories into sets for burning to disc."""
     def __init__(self,
                  path: Path | str,
                  prefix: str,
@@ -233,6 +232,7 @@ echo 'Move disc to printer.'
             self._sets.append(self._current_set)
 
     def split(self) -> None:
+        """Split the directory into sets."""
         for dir_ in sorted(sorted(
                 sp.run(('find', str(Path(self._path).resolve(strict=True)), '-maxdepth', '1', '!',
                         '-name', '.directory'),

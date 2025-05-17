@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 from pathlib import Path
+from typing import TYPE_CHECKING
 import logging
 
-from click.testing import CliRunner
 from gendisc.main import main
-from pytest_mock import MockerFixture
+
+if TYPE_CHECKING:
+    from click.testing import CliRunner
+    from pytest_mock import MockerFixture
 
 
 def test_main_success(runner: CliRunner, mocker: MockerFixture) -> None:

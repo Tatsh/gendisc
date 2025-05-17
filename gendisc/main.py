@@ -1,3 +1,4 @@
+"""Main command."""
 from __future__ import annotations
 
 from functools import partialmethod
@@ -17,6 +18,7 @@ log = logging.getLogger(__name__)
 
 @click.command(context_settings={'help_option_names': ('-h', '--help')})
 @click.argument('path')
+@click.option('--cross-fs', help='Allow crossing file systems.', is_flag=True)
 @click.option('-D',
               '--drive',
               default='/dev/sr0',
@@ -35,8 +37,7 @@ log = logging.getLogger(__name__)
               help='Output directory. Will be created if it does not exist.',
               type=click.Path(file_okay=False))
 @click.option('-p', '--prefix', help='Prefix for volume ID and files.')
-@click.option('-r', '--delete', help='Issue rm commands instead of trash.', is_flag=True)
-@click.option('--cross-fs', help='Allow crossing file systems.', is_flag=True)
+@click.option('-r', '--delete', help='Unlink instead of sending to trash.', is_flag=True)
 def main(path: str,
          drive: str = '/dev/sr0',
          output_dir: str = '.',

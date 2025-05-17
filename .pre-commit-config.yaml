@@ -34,7 +34,6 @@ repos:
         stages:
           - 'pre-push'
       - args:
-          - '--all-extras'
           - '--all-groups'
         id: 'poetry-install'
     repo: 'https://github.com/python-poetry/poetry'
@@ -102,4 +101,10 @@ repos:
         name: 'check Markdown files are formatted'
         types_or:
           - 'markdown'
+      - entry: 'yarn check-spelling --no-must-find-files --no-summary'
+        id: 'cspell'
+        language: 'node'
+        name: 'check spelling'
+        types:
+          - 'text'
     repo: 'local'

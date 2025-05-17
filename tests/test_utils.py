@@ -1,8 +1,14 @@
+# ruff: noqa: SLF001
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
-from gendisc.utils import DirectorySplitter, generate_label_image, get_disc_type, is_cross_fs
-from pytest_mock import MockerFixture
+from gendisc.utils import DirectorySplitter, LazyMounts, get_dir_size, get_disc_type, is_cross_fs
 import pytest
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture
@@ -15,23 +21,56 @@ def mocker_fs(mocker: MockerFixture) -> None:
     mocker.patch('gendisc.utils.sp.run', return_value=MagicMock(stdout='dir1\ndir2\n'))
 
 
-def test_generate_label_image(mocker: MockerFixture) -> None:
-    mock_image = mocker.patch('gendisc.utils.Image')
-    mock_font = mocker.patch('gendisc.utils.Font')
-    generate_label_image(['content1', 'content2'], 'test.png')
-    mock_image.assert_called_once()
-    mock_font.assert_called_once_with('Noto', 20)
-
-
 def test_get_disc_type() -> None:
     assert get_disc_type(700 * 1024 * 1024) == 'DVD-R'
-    assert get_disc_type(int(4.7 * 1024 * 1024 * 1024)) == 'DVD-R'
+    assert get_disc_type(int(4.7 * 1024 * 1024 * 1024)) == 'DVD-R DL'
     assert get_disc_type(int(8.5 * 1024 * 1024 * 1024)) == 'BD-R'
     assert get_disc_type(25 * 1024 * 1024 * 1024) == 'BD-R DL'
     assert get_disc_type(50 * 1024 * 1024 * 1024) == 'BD-R XL (100 GB)'
     assert get_disc_type(100 * 1024 * 1024 * 1024) == 'BD-R XL (128 GB)'
     with pytest.raises(ValueError, match=r'Disc size exceeds maximum supported size.'):
         get_disc_type(128 * 1024 * 1024 * 1024)
+
+
+def test_get_dir_size() -> None:
+    with pytest.raises(NotADirectoryError):
+        get_dir_size('non-existent-path')
+
+
+def test_get_dir_size_returns_correct_size(mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.utils.walk', return_value=[('base', [], ['a', 'b', 'c'])])
+    mocker.patch('gendisc.utils.isdir', return_value=True)
+    mocker.patch('gendisc.utils.islink', return_value=False)
+    mocker.patch('gendisc.utils.get_file_size', return_value=2048)
+    mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
+    size = get_dir_size('some_dir')
+    assert size == 3 * 2048
+
+
+def test_get_dir_size_skips_symlinks(mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.utils.walk', return_value=[('base', [], ['a', 'b'])])
+    mocker.patch('gendisc.utils.isdir', return_value=True)
+    mocker.patch('gendisc.utils.islink', side_effect=[False, True])
+    mocker.patch('gendisc.utils.get_file_size', return_value=4096)
+    mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
+    size = get_dir_size('dir')
+    assert size == 4096
+
+
+def test_get_dir_size_handles_oserror(mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.utils.walk', return_value=[('base', [], ['z', 'x'])])
+    mocker.patch('gendisc.utils.isdir', return_value=True)
+    mocker.patch('gendisc.utils.islink', return_value=False)
+    mocker.patch('gendisc.utils.get_file_size', side_effect=[OSError, 512])
+    mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
+    size = get_dir_size('dir2')
+    assert size == 512
+
+
+def test_get_dir_size_raises_not_a_directory(mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.utils.isdir', return_value=False)
+    with pytest.raises(NotADirectoryError):
+        get_dir_size('not_a_dir')
 
 
 def test_is_cross_fs(mocker: MockerFixture) -> None:
@@ -43,31 +82,122 @@ def test_is_cross_fs(mocker: MockerFixture) -> None:
 
 def test_directory_splitter_init(mocker_fs: None) -> None:
     splitter = DirectorySplitter('test_path', 'prefix')
-    assert splitter._prefix == 'prefix'  # noqa: SLF001
-    assert splitter._delete_command == 'trash'  # noqa: SLF001
-    assert splitter._drive == '/dev/sr0'  # noqa: SLF001
-    assert splitter._starting_index == 1  # noqa: SLF001
+    assert splitter._prefix == 'prefix'
+    assert splitter._delete_command == 'trash'
+    assert splitter._drive == '/dev/sr0'
+    assert splitter._starting_index == 1
 
 
 def test_directory_splitter_split(mocker_fs: None) -> None:
     splitter = DirectorySplitter('test_path', 'prefix')
     splitter.split()
-    assert len(splitter._sets) == 1  # noqa: SLF001
-    assert len(splitter._sets[0]) == 1  # noqa: SLF001
+    assert len(splitter._sets) == 1
+    assert len(splitter._sets[0]) == 1
 
 
 def test_directory_splitter_too_large(mocker_fs: None) -> None:
     splitter = DirectorySplitter('test_path', 'prefix')
-    splitter._size = 1024  # noqa: SLF001
-    splitter._too_large()  # noqa: SLF001
-    assert splitter._total == 0  # noqa: SLF001
-    assert len(splitter._current_set) == 0  # noqa: SLF001
+    splitter._size = 1024
+    splitter._too_large()
+    assert splitter._total == 0
+    assert len(splitter._current_set) == 0
 
 
 def test_directory_splitter_append_set(mocker_fs: None) -> None:
     splitter = DirectorySplitter('test_path', 'prefix')
-    splitter._current_set = ['file1', 'file2']  # noqa: SLF001
-    splitter._total = 2048  # noqa: SLF001
-    splitter._append_set()  # noqa: SLF001
-    assert len(splitter._sets) == 1  # noqa: SLF001
-    assert len(splitter._sets[0]) == 2  # noqa: SLF001
+    splitter._current_set = ['file1', 'file2']
+    splitter._total = 2048
+    splitter._append_set()
+    assert len(splitter._sets) == 1
+    assert len(splitter._sets[0]) == 2
+
+
+def test_directory_splitter_split_skips_cross_fs(mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.utils.sp.run', return_value=MagicMock(stdout='.\ndir1\ndir2\n'))
+    mock_path = mocker.patch('gendisc.utils.Path')
+    mock_path.resolve.return_value = MagicMock(strict=True, parent=MagicMock())
+    mocker.patch('gendisc.utils.walk', return_value=[('base', [], ['file1'])])
+    mocker.patch('gendisc.utils.isdir', return_value=True)
+    mocker.patch('gendisc.utils.islink', return_value=False)
+    mocker.patch('gendisc.utils.get_file_size', return_value=1024)
+    mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
+    mocker.patch('gendisc.utils.is_cross_fs', side_effect=lambda d: d == 'dir2')
+    splitter = DirectorySplitter('test_path', 'prefix')
+    splitter.split()
+    assert len(splitter._sets) == 1
+    assert all('dir1' in entry for entry in splitter._sets[0])
+    assert all('dir2' not in entry for entry in splitter._sets[0])
+
+
+def test_directory_splitter_split_file_too_large_for_bluray(mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.utils.sp.run', return_value=MagicMock(stdout='.\nfile1\n'))
+    mocker.patch('gendisc.utils.Path.resolve',
+                 return_value=MagicMock(strict=True, parent=MagicMock()))
+    mocker.patch('gendisc.utils.walk', return_value=[('base', [], [])])
+    mocker.patch('gendisc.utils.isdir', return_value=True)
+    mocker.patch('gendisc.utils.islink', return_value=False)
+    mocker.patch('gendisc.utils.get_dir_size', side_effect=NotADirectoryError)
+    mocker.patch('gendisc.utils.get_file_size', return_value=200 * 1024 * 1024 * 1024)
+    mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
+    splitter = DirectorySplitter('test_path', 'prefix')
+    splitter.split()
+    assert len(splitter._sets) == 0
+
+
+def test_directory_splitter_skip_files_that_raise_oserror(mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.utils.sp.run', return_value=MagicMock(stdout='.\ndir_big\n'))
+    mocker.patch('gendisc.utils.Path.resolve',
+                 return_value=MagicMock(strict=True, parent=MagicMock()))
+    mocker.patch('gendisc.utils.walk', return_value=[('base', [], [])])
+    mocker.patch('gendisc.utils.isdir', return_value=True)
+    mocker.patch('gendisc.utils.islink', return_value=False)
+    mocker.patch('gendisc.utils.get_dir_size', side_effect=NotADirectoryError)
+    mocker.patch('gendisc.utils.get_file_size', side_effect=OSError)
+    mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
+    recursive_called = {}
+    orig_split = DirectorySplitter.split
+
+    def fake_split(self: Any) -> None:
+        recursive_called['called'] = True
+
+    mocker.patch.object(DirectorySplitter, 'split', fake_split)
+    splitter = DirectorySplitter('test_path', 'prefix')
+    orig_split(splitter)
+    assert splitter._total == 0
+    assert splitter._current_set == []
+
+
+def test_lazy_mounts_read(mocker: MockerFixture) -> None:
+    mock_mounts_content = '/dev/sda1 / ext4 rw 0 0\n/dev/sdb1 /mnt ext4 rw 0 0'
+    mocker.patch('gendisc.utils.Path.read_text', return_value=mock_mounts_content)
+    mounts = LazyMounts._read()
+    assert mounts == ['/', '/mnt']
+
+
+def test_lazy_mounts_initialize_and_reload(mocker: MockerFixture) -> None:
+    mocker.patch.object(LazyMounts, '_read', return_value=['/mnt', '/media'])
+    lm = LazyMounts()
+    assert lm._mounts is None
+    lm.initialize()
+    assert lm._mounts == ['/mnt', '/media']
+    lm._mounts = None
+    lm.reload()
+    assert lm._mounts == ['/mnt', '/media']
+
+
+def test_lazy_mounts_mounts_property(mocker: MockerFixture) -> None:
+    mocker.patch.object(LazyMounts, '_read', return_value=['/foo', '/bar'])
+    lm = LazyMounts()
+    mounts = lm.mounts
+    assert mounts == ['/foo', '/bar']
+
+
+def test_lazy_mounts_getitem_and_len(mocker: MockerFixture) -> None:
+    mocker.patch.object(LazyMounts, '_read', return_value=['/a', '/b', '/c'])
+    lm = LazyMounts()
+    # __getitem__ int
+    assert lm[0] == '/a'
+    # __getitem__ slice
+    assert lm[1:] == ['/b', '/c']
+    # __len__
+    assert len(lm) == 3
