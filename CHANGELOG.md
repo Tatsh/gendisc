@@ -11,20 +11,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.0.1] - 2025-00-00
 
-### Added
+First version.
 
-- Item
-
-### Fixed
-
-- Item
-
-### Changed
-
-- Item
-
-### Removed
-
-- Item
-
-[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v{settings.version}...HEAD
+[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.1...HEAD

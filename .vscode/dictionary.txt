@@ -1,6 +1,8 @@
 autodoc
 automodule
 bluray
+bordercolor
+borderopacity
 bsky
 burnfree
 cdrecord
@@ -12,7 +14,9 @@ coveragerc
 datatable
 datatables
 debugpy
+deskcolor
 djlint
+docname
 doctrees
 driveropts
 eeyore
@@ -28,6 +32,7 @@ globaltoc
 gracetime
 hoverxref
 htmlcov
+inkscape
 inodes
 intersphinx
 isort
@@ -40,10 +45,13 @@ linters
 mkisofs
 modindex
 mypy
+namedview
 norecursedirs
-noto
 numpy
 numpydoc
+pagecheckerboard
+pagecolor
+pageopacity
 pipx
 popd
 proc
@@ -59,10 +67,11 @@ regen
 rstcheck
 schemafile
 sdist
+showpageshadow
+sodipodi
 sphinxcontrib
 tatsh
 testpaths
-toctree
 tqdm
 tryfirst
 udisksctl
