@@ -60,6 +60,7 @@ pycache
 pydantic
 pydocstyle
 pylance
+pypi
 pyproject
 pyright
 pytest
