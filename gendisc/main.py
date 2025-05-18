@@ -10,7 +10,7 @@ from wakepy import keep
 import click
 
 from .genlabel import Point, write_spiral_text_png, write_spiral_text_svg
-from .utils import DirectorySplitter
+from .utils import DirectorySplitter, setup_logging
 
 __all__ = ('main',)
 
@@ -51,7 +51,7 @@ def main(path: Path,
          delete: bool = False,
          no_labels: bool = False) -> None:
     """Make a file listing filling up discs."""
-    logging.basicConfig(level=logging.DEBUG if debug else logging.ERROR)
+    setup_logging(debug=debug)
     if debug:
         tqdm.__init__ = partialmethod(  # type: ignore[assignment,method-assign]
             tqdm.__init__, disable=True)
@@ -115,7 +115,7 @@ def genlabel_main(text: tuple[str, ...],
                   keep_svg: bool = False,
                   svg: bool = False) -> None:
     """Generate an image intended for printing on disc consisting of text in a spiral."""
-    logging.basicConfig(level=logging.DEBUG if debug else logging.ERROR)
+    setup_logging(debug=debug)
     if svg:
         write_spiral_text_svg(output.with_suffix('.svg'), ' '.join(text), width, height, view_box,
                               font_size,

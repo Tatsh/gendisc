@@ -7,6 +7,7 @@ bsky
 burnfree
 cdrecord
 codeowners
+colored
 colorlog
 colorspace
 commitizen
@@ -43,6 +44,7 @@ isort
 jinja
 jsonnet
 jsonschema
+levelname
 lextudio
 libjsonnet
 linters

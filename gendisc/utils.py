@@ -6,6 +6,7 @@ from functools import cache
 from pathlib import Path
 from typing import Literal, overload
 import logging
+import logging.config
 import os
 import re
 import shlex
@@ -30,6 +31,54 @@ from .genlabel import write_spiral_text_png
 __all__ = ('DirectorySplitter', 'get_disc_type')
 
 log = logging.getLogger(__name__)
+
+
+def setup_logging(*,
+                  debug: bool = False,
+                  force_color: bool = False,
+                  no_color: bool = False) -> None:  # pragma: no cover
+    """Set up logging configuration."""
+    logging.config.dictConfig({
+        'disable_existing_loggers': True,
+        'root': {
+            'level': 'DEBUG' if debug else 'INFO',
+            'handlers': ['console'],
+        },
+        'formatters': {
+            'default': {
+                '()': 'colorlog.ColoredFormatter',
+                'force_color': force_color,
+                'format': (
+                    '%(light_cyan)s%(asctime)s%(reset)s | %(log_color)s%(levelname)-8s%(reset)s | '
+                    '%(light_green)s%(name)s%(reset)s:%(light_red)s%(funcName)s%(reset)s:'
+                    '%(blue)s%(lineno)d%(reset)s - %(message)s'),
+                'no_color': no_color,
+            },
+            'simple': {
+                'format': '%(levelname)s: %(message)s',
+            }
+        },
+        'handlers': {
+            'console': {
+                'class': 'colorlog.StreamHandler',
+                'formatter': 'default' if debug else 'simple',
+            }
+        },
+        'loggers': {
+            'gendisc': {
+                'level': 'INFO' if not debug else 'DEBUG',
+                'handlers': ('console',),
+                'propagate': False,
+            },
+            'wakepy': {
+                'level': 'INFO' if not debug else 'DEBUG',
+                'handlers': ('console',),
+                'propagate': False,
+            },
+        },
+        'version': 1
+    })
+
 
 convert_size_bytes_to_string = cache(fsutil.convert_size_bytes_to_string)
 get_file_size = cache(fsutil.get_file_size)
@@ -245,7 +294,7 @@ echo 'Move disc to printer.'
             (self._output_dir_p / sh_filename).chmod(0o755)
             log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))
             if self._has_mogrify:
-                log.info('Creating label for "%s".', volid)
+                log.debug('Creating label for "%s".', volid)
                 l_common_prefix = len(self._prefix_parts[-1])
                 text = f'{volid} || '
                 text += ' | '.join(
