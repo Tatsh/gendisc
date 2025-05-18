@@ -14,7 +14,9 @@ from typing import (
 import logging
 import math
 import os
+import re
 import shlex
+import shutil
 import subprocess as sp
 
 from tqdm import tqdm
@@ -31,8 +33,9 @@ from .constants import (
     DVD_R_SINGLE_LAYER_SIZE_BYTES,
 )
 
-__all__ = ('DirectorySplitter', 'Point', 'create_spiral_path', 'create_spiral_svg', 'get_disc_type',
-           'write_spiral_svg')
+__all__ = ('DirectorySplitter', 'MogrifyNotFound', 'Point', 'create_spiral_path',
+           'create_spiral_text_svg', 'get_disc_type', 'write_spiral_text_png',
+           'write_spiral_text_svg')
 
 log = logging.getLogger(__name__)
 
@@ -144,26 +147,34 @@ def get_disc_type(total: int) -> str:  # noqa: PLR0911
     raise ValueError(msg)
 
 
+def path_list_first_component(line: str) -> str:
+    return re.split(r'(?<!\\)=', line, maxsplit=1)[0].replace('\\=', '=')
+
+
 class DirectorySplitter:
     """Split directories into sets for burning to disc."""
     def __init__(self,
                  path: Path | str,
                  prefix: str,
+                 prefix_parts: tuple[str, ...] | None = None,
                  delete_command: str = 'trash',
                  drive: str = '/dev/sr0',
                  output_dir: Path | str = '.',
                  starting_index: int = 1,
                  *,
-                 cross_fs: bool = False) -> None:
+                 cross_fs: bool = False,
+                 labels: bool = False) -> None:
         self._cross_fs = cross_fs
         self._current_set: list[str] = []
         self._delete_command = delete_command
         self._drive = drive
+        self._has_mogrify = False if not labels else shutil.which('mogrify') is not None
         self._l_path = len(str(Path(path).resolve(strict=True).parent))
         self._next_total = 0
         self._output_dir_p = Path(output_dir)
         self._path = Path(path)
         self._prefix = prefix
+        self._prefix_parts = prefix_parts or (prefix,)
         self._sets: list[list[str]] = []
         self._size = 0
         self._starting_index = starting_index
@@ -237,6 +248,15 @@ echo 'Move disc to printer.'
                                                           encoding='utf-8')
             (self._output_dir_p / sh_filename).chmod(0o755)
             log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))
+            if self._has_mogrify:
+                log.info('Creating label for "%s".', volid)
+                l_common_prefix = len(self._prefix_parts[-1])
+                text = f'{volid} || '
+                text += ' | '.join(
+                    sorted(
+                        path_list_first_component(x[l_common_prefix + 1:])
+                        for x in self._current_set if x.strip()))
+                write_spiral_text_png(self._output_dir_p / f'{fn_prefix}.png', text)
             self._sets.append(self._current_set)
 
     def split(self) -> None:
@@ -284,19 +304,20 @@ echo 'Move disc to printer.'
                         dir_)
                     continue
                 log.debug('Directory %s too large for Blu-ray. Splitting separately.', dir_)
+                suffix = Path(dir_).name
                 DirectorySplitter(dir_,
-                                  f'{self._prefix}-{Path(dir_).name}',
+                                  f'{self._prefix}-{suffix}', (*self._prefix_parts, suffix),
                                   self._delete_command,
                                   self._drive,
                                   self._output_dir_p,
                                   self._starting_index,
-                                  cross_fs=self._cross_fs).split()
+                                  cross_fs=self._cross_fs,
+                                  labels=self._has_mogrify).split()
                 self._reset()
                 continue
             self._total = self._next_total
             fixed = dir_[self._l_path + 1:].replace('=', '\\=')
             self._current_set.append(f'{fixed}={dir_}')
-
         self._append_set()
 
 
@@ -360,16 +381,25 @@ def _p_str(point: Point) -> str:
 
 
 _SupportsFloatOrIndex: TypeAlias = SupportsFloat | SupportsIndex
+_DEFAULT_START_RADIUS = 0
+_DEFAULT_SPACE_PER_LOOP = 20
+_DEFAULT_START_THETA = -6840
+_DEFAULT_END_THETA = 0
+_DEFAULT_THETA_STEP = 30
+_DEFAULT_FONT_SIZE = 16
+_DEFAULT_WIDTH_HEIGHT = 400
 
 
 def create_spiral_path(center: Point | None = None,
-                       start_radius: float = 0,
-                       space_per_loop: float = 25,
-                       start_theta: _SupportsFloatOrIndex = 0,
-                       end_theta: _SupportsFloatOrIndex = 2160,
-                       theta_step: _SupportsFloatOrIndex = 30) -> str:
+                       start_radius: float = _DEFAULT_START_RADIUS,
+                       space_per_loop: float = _DEFAULT_SPACE_PER_LOOP,
+                       start_theta: _SupportsFloatOrIndex = _DEFAULT_START_THETA,
+                       end_theta: _SupportsFloatOrIndex = _DEFAULT_END_THETA,
+                       theta_step: _SupportsFloatOrIndex = _DEFAULT_THETA_STEP) -> str:
     """
     Get a path string for a spiral in a SVG file.
+
+    Defaults to creating a spiral that starts at the outside and goes inwards.
 
     Algorithm borrowed from `How to make a spiral in SVG? <https://stackoverflow.com/a/49099258/374110>`_.
 
@@ -382,7 +412,8 @@ def create_spiral_path(center: Point | None = None,
     space_per_loop : float
         The space between each loop of the spiral.
     start_theta : float
-        The starting angle of the spiral in degrees.
+        The starting angle of the spiral in degrees. Use a negative number to have the spiral start
+        at the outside and go inwards.
     end_theta : float
         The ending angle of the spiral in degrees.
     theta_step : float
@@ -393,7 +424,7 @@ def create_spiral_path(center: Point | None = None,
     str
         The path string for the spiral. Goes inside a ``<path>`` in the ``d`` attribute.
     """
-    center = center or Point(400, 400)
+    center = center or Point(_DEFAULT_WIDTH_HEIGHT, _DEFAULT_WIDTH_HEIGHT)
     # Rename spiral parameters for the formula r = a + bθ.
     a = start_radius  # Start distance from center
     b = space_per_loop / math.pi / 2  # Space between each loop
@@ -410,7 +441,7 @@ def create_spiral_path(center: Point | None = None,
     # Slopes of tangents
     new_slope = ((b * math.sin(old_theta) + (a + b * new_theta) * math.cos(old_theta)) /
                  (b * math.cos(old_theta) - (a + b * new_theta) * math.sin(old_theta)))
-    paths = f'M {_p_str(new_point)}'
+    paths = f'M {_p_str(new_point)} Q '
     while old_theta < end_theta - theta_step:
         old_theta = new_theta
         new_theta += theta_step
@@ -433,24 +464,25 @@ def create_spiral_path(center: Point | None = None,
         # Offset the control point by the center offset.
         control_point.x += center.x
         control_point.y += center.y
-        paths += f'Q {_p_str(control_point)}{_p_str(new_point)}'
+        paths += f'{_p_str(control_point)}{_p_str(new_point)} '
     return paths.strip()
 
 
-def create_spiral_svg(text: str,
-                      width: int = 400,
-                      height: int = 400,
-                      view_box: str = '0 0 800 800',
-                      font_size: int = 13,
-                      center: Point | None = None,
-                      start_radius: float = 0,
-                      space_per_loop: float = 25,
-                      start_theta: _SupportsFloatOrIndex = 0,
-                      end_theta: _SupportsFloatOrIndex = 2160,
-                      theta_step: _SupportsFloatOrIndex = 30,
-                      start_offset: float | str = 0) -> str:
+def create_spiral_text_svg(text: str,
+                           width: int = _DEFAULT_WIDTH_HEIGHT,
+                           height: int | None = None,
+                           view_box: tuple[int, int, int, int] | None = None,
+                           font_size: int = _DEFAULT_FONT_SIZE,
+                           center: Point | None = None,
+                           start_radius: float = _DEFAULT_START_RADIUS,
+                           space_per_loop: float = _DEFAULT_SPACE_PER_LOOP,
+                           start_theta: _SupportsFloatOrIndex = _DEFAULT_START_THETA,
+                           end_theta: _SupportsFloatOrIndex = _DEFAULT_END_THETA,
+                           theta_step: _SupportsFloatOrIndex = _DEFAULT_THETA_STEP) -> str:
     """
-    Create a spiral SVG.
+    Create a spiral SVG text.
+
+    Defaults to creating a spiral that starts at the outside and goes inwards.
 
     Parameters
     ----------
@@ -462,63 +494,65 @@ def create_spiral_svg(text: str,
         The height of the SVG.
     view_box : str
         The view box of the SVG.
+    font_size : int
+        The font size of the text in the SVG in pixels.
     center : Point
-        The center of the spiral.
+        The center of the spiral. If not specified, it will be set to (width, width).
     start_radius : float
         The starting radius of the spiral.
     space_per_loop : float
         The space between each loop of the spiral.
     start_theta : float
-        The starting angle of the spiral in degrees.
+        The starting angle of the spiral in degrees. Use a negative number to have the spiral start
+        at the outside and go inwards.
     end_theta : float
         The ending angle of the spiral in degrees.
     theta_step : float
         The step size of the angle in degrees.
-    start_offset: float | str
-        The starting offset of the text in the spiral. Can be a percentage (e.g. '50%') or a
-        number (e.g. 100). If a number, it is the distance from the start of the spiral in pixels.
 
     Returns
     -------
     str
         The SVG string for the spiral.
     """
-    center = center or Point(400, 400)
-    path = create_spiral_path(center, start_radius, space_per_loop, start_theta, end_theta,
-                              theta_step)
+    center = center or Point(width, width)
+    height = height or width
+    view_box_s = ' '.join((str(x) for x in view_box) if view_box else ('0', '0', str(width * 2),
+                                                                       str(height * 2)))
+    path_d = create_spiral_path(center, start_radius, space_per_loop, start_theta, end_theta,
+                                theta_step)
     return f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="{view_box}">
+<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="{view_box_s}">
   <style>
     .small {{
       font: {font_size}px sans-serif;
     }}
   </style>
-  <path id="spiral" d="{path}" fill="none" stroke="black" stroke-width="0" />
+  <path id="spiral" d="{path_d}" fill="none" stroke="black" stroke-width="0" />
   <text>
-    <textPath href="#spiral" class="small" startOffset="{start_offset}">
+    <textPath href="#spiral" class="small">
     {text}
     </textPath>
   </text>
 </svg>""".strip()
 
 
-def write_spiral_svg(filename: str | Path,
-                     text: str,
-                     width: int = 400,
-                     height: int = 400,
-                     view_box: str = '0 0 800 800',
-                     font_size: int = 13,
-                     center: Point | None = None,
-                     start_radius: float = 0,
-                     space_per_loop: float = 25,
-                     start_theta: _SupportsFloatOrIndex = 0,
-                     end_theta: _SupportsFloatOrIndex = 2160,
-                     theta_step: _SupportsFloatOrIndex = 30,
-                     start_offset: float | str = 0) -> None:
+def write_spiral_text_svg(filename: str | Path,
+                          text: str,
+                          width: int = _DEFAULT_WIDTH_HEIGHT,
+                          height: int | None = None,
+                          view_box: tuple[int, int, int, int] | None = None,
+                          font_size: int = _DEFAULT_FONT_SIZE,
+                          center: Point | None = None,
+                          start_radius: float = _DEFAULT_START_RADIUS,
+                          space_per_loop: float = _DEFAULT_SPACE_PER_LOOP,
+                          start_theta: _SupportsFloatOrIndex = _DEFAULT_START_THETA,
+                          end_theta: _SupportsFloatOrIndex = _DEFAULT_END_THETA,
+                          theta_step: _SupportsFloatOrIndex = _DEFAULT_THETA_STEP) -> None:
     """
-    Write a spiral SVG to a file.
+    Write a spiral text SVG string to a file.
 
-    Create a spiral SVG.
+    Defaults to creating a spiral that starts at the outside and goes inwards.
 
     Parameters
     ----------
@@ -530,8 +564,11 @@ def write_spiral_svg(filename: str | Path,
         The width of the SVG.
     height : int
         The height of the SVG.
-    view_box : str
-        The view box of the SVG.
+    view_box : tuple[int, int, int, int] | None
+        The view box of the SVG. If not specified, it will be set to
+        ``(0, 0, width * 2, height * 2)``.
+    font_size : int
+        The font size of the text in the SVG in pixels.
     center : Point
         The center of the spiral.
     start_radius : float
@@ -544,11 +581,94 @@ def write_spiral_svg(filename: str | Path,
         The ending angle of the spiral in degrees.
     theta_step : float
         The step size of the angle in degrees.
-    start_offset: float | str
-        The starting offset of the text in the spiral. Can be a percentage (e.g. '50%') or a
-        number (e.g. 100). If a number, it is the distance from the start of the spiral in pixels.
     """
     filename = Path(filename)
-    spiral_svg = create_spiral_svg(text, width, height, view_box, font_size, center, start_radius,
-                                   space_per_loop, start_theta, end_theta, theta_step, start_offset)
+    spiral_svg = create_spiral_text_svg(text, width, height or width, view_box, font_size, center,
+                                        start_radius, space_per_loop, start_theta, end_theta,
+                                        theta_step)
     filename.write_text(f'{spiral_svg}\n', encoding='utf-8')
+
+
+class MogrifyNotFound(FileNotFoundError):
+    """Raised when ``mogrify`` is not found in ``PATH``."""
+    def __init__(self) -> None:
+        msg = '`mogrify` not found in PATH. Please install ImageMagick.'
+        super().__init__(msg)
+
+
+def write_spiral_text_png(filename: str | Path,
+                          text: str,
+                          width: int = _DEFAULT_WIDTH_HEIGHT,
+                          height: int | None = None,
+                          view_box: tuple[int, int, int, int] | None = None,
+                          dpi: int = 600,
+                          font_size: int = _DEFAULT_FONT_SIZE,
+                          center: Point | None = None,
+                          start_radius: float = _DEFAULT_START_RADIUS,
+                          space_per_loop: float = _DEFAULT_SPACE_PER_LOOP,
+                          start_theta: _SupportsFloatOrIndex = _DEFAULT_START_THETA,
+                          end_theta: _SupportsFloatOrIndex = _DEFAULT_END_THETA,
+                          theta_step: _SupportsFloatOrIndex = _DEFAULT_THETA_STEP,
+                          *,
+                          keep: bool = False) -> None:
+    """
+    Write a spiral text SVG string to a file.
+
+    Defaults to creating a spiral that starts at the outside and goes inwards.
+
+    Requires ``mogrify`` from ImageMagick to be installed and in ``PATH``.
+
+    Parameters
+    ----------
+    filename : str | Path
+        The filename to write the PNG to.
+    text: str
+        The text to put in the spiral.
+    width : int
+        The width of the SVG.
+    height : int
+        The height of the SVG.
+    view_box : tuple[int, int, int, int] | None
+        The view box of the SVG. If not specified, it will be set to
+        ``(0, 0, width * 2, height * 2)``.
+    font_size : int
+        The font size of the text in the SVG in pixels.
+    center : Point
+        The center of the spiral.
+    start_radius : float
+        The starting radius of the spiral.
+    space_per_loop : float
+        The space between each loop of the spiral.
+    start_theta : float
+        The starting angle of the spiral in degrees.
+    end_theta : float
+        The ending angle of the spiral in degrees.
+    theta_step : float
+        The step size of the angle in degrees.
+    keep : bool
+        If ``True``, keep the SVG file after conversion.
+
+    Raises
+    ------
+    MogrifyNotFound
+        If ``mogrify`` is not found in ``PATH``.
+    FileNotFoundError
+        If the PNG file could not be created.
+    """
+    if not (mogrify := shutil.which('mogrify')):
+        raise MogrifyNotFound
+    log.debug('Writing spiral text image to %s. Be patient!', filename)
+    filename = Path(filename)
+    svg_file = filename.with_suffix('.svg')
+    write_spiral_text_svg(svg_file, text, width, height, view_box, font_size, center, start_radius,
+                          space_per_loop, start_theta, end_theta, theta_step)
+    cmd = (mogrify, '-colorspace', 'sRGB', '-units', 'PixelsPerInch', '-density', str(dpi),
+           '-background', 'none', '-gravity', 'center', '-extent', '2550x2550', '-format', 'png',
+           str(svg_file))
+    log.debug('Running: %s', ' '.join(quote(x) for x in cmd))
+    sp.run(cmd, check=True)
+    if not filename.exists():
+        msg = f'Failed to create {filename}.'
+        raise FileNotFoundError(msg)
+    if not keep:
+        svg_file.unlink()

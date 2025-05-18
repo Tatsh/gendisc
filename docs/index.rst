@@ -85,6 +85,28 @@ Commands
   :prog: gendisc
   :nested: full
 
+Output
+------
+
+The output consists of a series of shell scripts that perform the following steps:
+
+- Generate the ISO image for the current set using ``mkisofs``.
+- Save a SHA256 checksum of the image for verification.
+- Save a directory tree listing (requires ``tree``).
+- Save a file listing using ``find``.
+- Prompt to insert a blank disc.
+- Burn the image to disc using ``cdrecord`` (default speed: 4x).
+- Eject and re-insert the disc.
+- Verify the disc.
+- Delete or move the source files to the bin.
+- Eject the disc.
+- Prompt to move the disc to a label printer.
+
+If ``mogrify`` (ImageMagick) is installed, a label will be generated. This label can be opened in a
+tool that supports disc printing (such as GIMP). In GIMP, set the *Width* and *Height* to 12 cm in
+*Image Settings* in the print dialogue before printing. I am using an Epson XP-7100 printer for this
+purpose.
+
 .. only:: html
 
    Library

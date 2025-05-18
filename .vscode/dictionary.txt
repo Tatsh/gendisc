@@ -10,6 +10,9 @@ codeowners
 colorlog
 commitizen
 conftest
+epson
+colorspace
+dialogue
 coveragerc
 datatable
 datatables
@@ -44,6 +47,7 @@ libjsonnet
 linters
 mkisofs
 modindex
+mogrify
 mypy
 namedview
 norecursedirs

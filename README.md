@@ -54,3 +54,22 @@ Options:
   -r, --delete                Unlink instead of sending to trash.
   -h, --help                  Show this message and exit.
 ```
+
+The output is a series of shell scripts that do the following:
+
+- Generate the ISO image with `mkisofs` for the current set.
+- Save a SHA256 sum of the image for verification.
+- Save a tree listing for later use (`tree` must be installed).
+- Save a file listing via `find` for later use.
+- Requests to insert a blank disc.
+- Uses `cdrecord` to burn (currently set to burn at 4x speed).
+- Ejects and re-inserts the disc.
+- Verifies the disc.
+- Deletes the source files or sends them to the bin.
+- Ejects the disc.
+- Requests to move the disc to a label printer.
+
+If you have `mogrify` (ImageMagick) installed, a label will be generated. This can be then opened in
+a tool that can ask your printer (such as an Epson XP-7100) to print to disc (GIMP). In GIMP, be
+sure to set the _Width_ and _Height_ to 12 cm in _Image Settings_ in the print dialogue before
+printing.

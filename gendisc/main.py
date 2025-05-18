@@ -38,6 +38,7 @@ log = logging.getLogger(__name__)
               type=click.Path(file_okay=False))
 @click.option('-p', '--prefix', help='Prefix for volume ID and files.')
 @click.option('-r', '--delete', help='Unlink instead of sending to trash.', is_flag=True)
+@click.option('--no-labels', help='Do not create labels.', is_flag=True)
 def main(path: str,
          drive: str = '/dev/sr0',
          output_dir: str = '.',
@@ -46,7 +47,8 @@ def main(path: str,
          *,
          cross_fs: bool = False,
          debug: bool = False,
-         delete: bool = False) -> None:
+         delete: bool = False,
+         no_labels: bool = False) -> None:
     """Make a file listing filling up discs."""
     logging.basicConfig(level=logging.DEBUG if debug else logging.ERROR)
     if debug:
@@ -57,8 +59,9 @@ def main(path: str,
     with keep.running():
         DirectorySplitter(path,
                           prefix or Path(path).name,
-                          'rm -rf' if delete else 'trash',
-                          drive,
-                          output_dir_p,
-                          starting_index,
-                          cross_fs=cross_fs).split()
+                          delete_command='rm -rf' if delete else 'trash',
+                          drive=drive,
+                          output_dir=output_dir_p,
+                          starting_index=starting_index,
+                          cross_fs=cross_fs,
+                          labels=not no_labels).split()
