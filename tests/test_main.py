@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING
-import logging
 
 from gendisc.main import genlabel_main, main
 
@@ -23,9 +22,9 @@ def test_main_debug_logging(runner: CliRunner, mocker: MockerFixture) -> None:
     mocker.patch('gendisc.main.Path.mkdir')
     mocker.patch('gendisc.main.keep.running')
     mocker.patch('gendisc.main.DirectorySplitter')
-    mock_logging = mocker.patch('gendisc.main.logging.basicConfig')
+    mock_logging = mocker.patch('gendisc.main.setup_logging')
     runner.invoke(main, ['test_path', '--debug'])
-    mock_logging.assert_called_once_with(level=logging.DEBUG)
+    mock_logging.assert_called_once_with(debug=True)
 
 
 def test_main_default_values(runner: CliRunner, mocker: MockerFixture) -> None:
