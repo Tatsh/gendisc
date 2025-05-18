@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import cache
+from os import walk
+from os.path import isdir, islink
 from pathlib import Path
 from typing import Literal, overload
 import logging
@@ -13,6 +15,7 @@ import shlex
 import shutil
 import subprocess as sp
 
+from fsutil import get_file_size
 from tqdm import tqdm
 from typing_extensions import override
 import fsutil
@@ -81,31 +84,38 @@ def setup_logging(*,
 
 
 convert_size_bytes_to_string = cache(fsutil.convert_size_bytes_to_string)
-get_file_size = cache(fsutil.get_file_size)
-isdir = cache(os.path.isdir)
-islink = cache(os.path.islink)
 path_join = cache(os.path.join)
 quote = cache(shlex.quote)
-walk = cache(os.walk)
+
+_REPORTED_BUGGY_FS = False
 
 
-@cache
 def get_dir_size(path: str) -> int:
+    global _REPORTED_BUGGY_FS  # noqa: PLW0603
     size = 0
-    if not isdir(path):
+    if not isdir(path):  # noqa: PTH112
         raise NotADirectoryError
     for basepath, _, filenames in tqdm(walk(path), desc=f'Calculating size of {path}', unit=' dir'):
         for filename in filenames:
             filepath = path_join(basepath, filename)
-            if not islink(filepath):
+            if not islink(filepath):  # noqa: PTH114
                 try:
                     log.debug('Getting file size for %s.', filepath)
                     size += get_file_size(filepath)
                 except OSError:
-                    log.exception(
-                        'Caught error getting file size for %s. It will not be considered '
-                        'part of the total.', filepath)
-                    continue
+                    if isdir(filepath):  # noqa: PTH112
+                        # On cifs with 'unix' option directories get reported as files from walk().
+                        if not _REPORTED_BUGGY_FS:
+                            log.warning(
+                                'Buggy file system (cifs with "unix" option?) reported directory'
+                                ' %s as file.', filepath)
+                            _REPORTED_BUGGY_FS = True
+                        # Still have to traverse this path since walk() did not.
+                        size += get_dir_size(filepath)
+                    else:
+                        log.exception(
+                            'Caught error getting file size for %s. It will not be considered '
+                            'part of the total.', filepath)
     return size
 
 
@@ -165,6 +175,7 @@ _DiscType = Literal['CD-R', 'DVD-R', 'DVD-R DL', 'BD-R', 'BD-R DL', 'BD-R XL (10
                     'BD-R XL (128 GB)']
 
 
+@cache
 def get_disc_type(total: int) -> _DiscType:  # noqa: PLR0911
     """
     Get disc type based on total size in bytes.
@@ -192,6 +203,7 @@ def get_disc_type(total: int) -> _DiscType:  # noqa: PLR0911
     raise ValueError(msg)
 
 
+@cache
 def path_list_first_component(line: str) -> str:
     return re.split(r'(?<!\\)=', line, maxsplit=1)[0].replace('\\=', '=')
 
@@ -213,7 +225,9 @@ class DirectorySplitter:
         self._current_set: list[str] = []
         self._delete_command = delete_command
         self._drive = drive or Path('/dev/sr0')
-        self._has_mogrify = False if not labels else shutil.which('mogrify') is not None
+        # mogrify internally uses Inkscape for SVG to PNG conversion.
+        self._has_mogrify = (False if not labels else (shutil.which('mogrify') is not None
+                                                       and shutil.which('inkscape') is not None))
         self._l_path = len(str(Path(path).resolve(strict=True).parent))
         self._next_total = 0
         self._output_dir_p = Path(output_dir)
@@ -225,6 +239,8 @@ class DirectorySplitter:
         self._starting_index = starting_index
         self._target_size = BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED
         self._total = 0
+        self._cached_get_dir_size = cache(get_dir_size)
+        self._cached_get_file_size = cache(get_file_size)
 
     def _reset(self) -> None:
         self._target_size = BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED
@@ -306,24 +322,24 @@ echo 'Move disc to printer.'
 
     def split(self) -> None:
         """Split the directory into sets."""
+        cmd = ('find', str(Path(self._path).resolve(strict=True)), '-maxdepth', '1', '!', '-name',
+               '.directory', '!', '(', '-type', 'd', '(', '-name', '.Trash-*', '-o', '-name',
+               'Trash', '-o', '-name', '.Trash', ')', ')')
+        log.debug('Running %s', ' '.join(quote(x) for x in cmd))
         for dir_ in sorted(sorted(
-                sp.run(('find', str(Path(self._path).resolve(strict=True)), '-maxdepth', '1', '!',
-                        '-name', '.directory'),
-                       check=True,
-                       text=True,
-                       capture_output=True).stdout.splitlines()[1:]),
-                           key=lambda x: not Path(x).is_dir()):
+                sp.run(cmd, check=True, text=True, capture_output=True).stdout.splitlines()[1:]),
+                           key=lambda x: not isdir(x)):  # noqa: PTH112
             if not self._cross_fs and is_cross_fs(dir_):
                 log.debug('Not processing %s because it is another file system.', dir_)
                 continue
             log.debug('Calculating size: %s', dir_)
             type_ = 'Directory'
             try:
-                self._size = get_dir_size(dir_)
+                self._size = self._cached_get_dir_size(dir_)
             except NotADirectoryError:
                 type_ = 'File'
                 try:
-                    self._size = get_file_size(dir_)
+                    self._size = self._cached_get_file_size(dir_)
                 except OSError:
                     continue
             self._next_total = self._total + self._size
