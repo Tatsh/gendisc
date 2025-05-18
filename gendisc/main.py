@@ -82,6 +82,7 @@ def main(path: Path,
 @click.option('--dpi', help='Dots per inch.', type=int, default=600)
 @click.option('--keep-svg', help='When generating the PNG, keep the SVG file.', is_flag=True)
 @click.option('-c', '--center', help='Center of the spiral.', type=click.Tuple((float, float)))
+@click.option('-d', '--debug', help='Enable debug logging.', is_flag=True)
 @click.option('-f', '--font-size', help='Font size.', type=float, default=16)
 @click.option('-g', '--svg', help='Output SVG.', is_flag=True)
 @click.option('-o',
@@ -110,9 +111,11 @@ def genlabel_main(text: tuple[str, ...],
                   view_box: tuple[int, int, int, int] | None = None,
                   width: int = 400,
                   *,
+                  debug: bool = False,
                   keep_svg: bool = False,
                   svg: bool = False) -> None:
     """Generate an image intended for printing on disc consisting of text in a spiral."""
+    logging.basicConfig(level=logging.DEBUG if debug else logging.ERROR)
     if svg:
         write_spiral_text_svg(output.with_suffix('.svg'), ' '.join(text), width, height, view_box,
                               font_size,
