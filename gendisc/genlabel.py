@@ -10,6 +10,7 @@ from typing import (
     SupportsIndex,
     TypeAlias,
 )
+from xml.sax.saxutils import escape
 import logging
 import math
 import shutil
@@ -160,7 +161,6 @@ def create_spiral_path(center: Point | None = None,
         old_slope = new_slope
         new_slope = ((b * math.sin(new_theta) + a_plus_b_theta * math.cos(new_theta)) /
                      (b * math.cos(new_theta) - a_plus_b_theta * math.sin(new_theta)))
-
         old_intercept = -(old_slope * old_r * math.cos(old_theta) - old_r * math.sin(old_theta))
         new_intercept = -(new_slope * new_r * math.cos(new_theta) - new_r * math.sin(new_theta))
         control_point = _line_intersection(old_slope, old_intercept, new_slope, new_intercept)
@@ -218,6 +218,7 @@ def create_spiral_text_svg(text: str,
     str
         The SVG string for the spiral.
     """
+    text = escape(text)
     center = center or Point(width, width)
     height = height or width
     view_box_s = ' '.join((str(x) for x in view_box) if view_box else ('0', '0', str(width * 2),
