@@ -67,10 +67,10 @@ def test_get_dir_size_handles_oserror(mocker: MockerFixture) -> None:
     mocker.patch('gendisc.utils.walk', return_value=[('base', [], ['z', 'x'])])
     mocker.patch('gendisc.utils.isdir', return_value=True)
     mocker.patch('gendisc.utils.islink', return_value=False)
-    mocker.patch('gendisc.utils.get_file_size', side_effect=[OSError, 512])
+    mocker.patch('gendisc.utils.get_file_size', side_effect=[OSError, 512, 512, 512])
     mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
     size = get_dir_size('dir2')
-    assert size == 512
+    assert size == 1536
 
 
 def test_get_dir_size_raises_not_a_directory(mocker: MockerFixture) -> None:
