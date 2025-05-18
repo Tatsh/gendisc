@@ -86,9 +86,9 @@ Commands
   :nested: full
 
 Output
-------
+^^^^^^
 
-The output consists of a series of shell scripts that perform the following steps:
+The output consists of a series of shell scripts (1 for each disc) that perform the following steps:
 
 - Generate the ISO image for the current set using ``mkisofs``.
 - Save a SHA256 checksum of the image for verification.
@@ -107,6 +107,13 @@ tool that supports disc printing (such as GIMP). In GIMP, set the *Width* and *H
 *Image Settings* in the print dialogue before printing. I am using an Epson XP-7100 printer for this
 purpose.
 
+Label generation
+----------------
+
+.. click:: gendisc.main:genlabel_main
+  :prog: genlabel
+  :nested: full
+
 .. only:: html
 
    Library
@@ -115,8 +122,12 @@ purpose.
    .. automodule:: gendisc
       :members:
 
+   .. automodule:: gendisc.genlabel
+      :exclude-members: MogrifyNotFound, Point, write_spiral_text_png, write_spiral_text_svg
+      :members:
+
    .. automodule:: gendisc.utils
-      :exclude-members: DirectorySplitter, write_spiral_svg
+      :exclude-members: DirectorySplitter
       :members:
 
    Indices and tables

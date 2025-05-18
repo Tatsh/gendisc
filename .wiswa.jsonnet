@@ -9,6 +9,11 @@
     'date-released': '2025-05-17',
   },
   pyproject+: {
+    project+: {
+      scripts+: {
+        genlabel: 'gendisc.main:genlabel_main',
+      },
+    },
     tool+: {
       poetry+: {
         dependencies+: {

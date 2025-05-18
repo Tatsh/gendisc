@@ -9,8 +9,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.0.1] - 2025-00-00
+## [0.0.2] - 2025-05-18
+
+### Added
+
+- `genlabel` command.
+
+## [0.0.1] - 2025-05-17
 
 First version.
 
-[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.1...HEAD
+[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.2...master

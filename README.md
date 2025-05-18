@@ -55,7 +55,7 @@ Options:
   -h, --help                  Show this message and exit.
 ```
 
-The output is a series of shell scripts that do the following:
+The output is a series of shell scripts (1 for each disc) that do the following:
 
 - Generate the ISO image with `mkisofs` for the current set.
 - Save a SHA256 sum of the image for verification.

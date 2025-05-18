@@ -27,6 +27,7 @@ name = "Andrew Udvare"
 
 [project.scripts]
 gendisc = "gendisc.main:main"
+genlabel = "gendisc.main:genlabel_main"
 
 [project.urls]
 Issues = "https://github.com/Tatsh/gendisc/issues"

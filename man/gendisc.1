@@ -27,9 +27,14 @@ level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
 .\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
 .in \\n[rst2man-indent\\n[rst2man-indent-level]]u
 ..
-.TH "GENDISC" "1" "May 12, 2025" "0.0.1" "gendisc"
+.TH "GENDISC" "1" "May 18, 2025" "0.0.1" "gendisc"
 .SH NAME
 gendisc \- gendisc v0.0.1
+.sp
+\X'tty: link https://www.python.org/'\fI\%Python versions\fP\X'tty: link' \X'tty: link https://pypi.org/project/gendisc/'\fI\%PyPI \- Version\fP\X'tty: link' \X'tty: link https://github.com/Tatsh/gendisc/tags'\fI\%GitHub tag (with filter)\fP\X'tty: link' \X'tty: link https://github.com/Tatsh/gendisc/blob/master/LICENSE.txt'\fI\%License\fP\X'tty: link' \X'tty: link https://github.com/Tatsh/gendisc/compare/v0.0.1...master'\fI\%GitHub commits since latest release\fP\X'tty: link' \X'tty: link https://github.com/Tatsh/gendisc/actions/workflows/qa.yml'\fI\%QA\fP\X'tty: link' \X'tty: link https://github.com/Tatsh/gendisc/actions/workflows/tests.yml'\fI\%Tests\fP\X'tty: link' \X'tty: link https://coveralls.io/github/Tatsh/gendisc?branch=master'\fI\%Coverage Status\fP\X'tty: link' \X'tty: link https://gendisc.readthedocs.org/?badge=latest'\fI\%Documentation Status\fP\X'tty: link' \X'tty: link http://mypy-lang.org/'\fI\%mypy\fP\X'tty: link' \X'tty: link https://github.com/pre-commit/pre-commit'\fI\%pre\-commit\fP\X'tty: link' \X'tty: link http://www.pydocstyle.org/en/stable/'\fI\%pydocstyle\fP\X'tty: link' \X'tty: link https://docs.pytest.org/en/stable/'\fI\%pytest\fP\X'tty: link' \X'tty: link https://github.com/astral-sh/ruff'\fI\%Ruff\fP\X'tty: link' \X'tty: link https://pepy.tech/project/gendisc'\fI\%Downloads\fP\X'tty: link' \X'tty: link https://github.com/Tatsh/gendisc/stargazers'\fI\%Stargazers\fP\X'tty: link' \X'tty: link https://bsky.app/profile/Tatsh.bsky.social'\fI\%Follow @Tatsh on Bluesky\fP\X'tty: link' \X'tty: link https://hostux.social/@Tatsh'\fI\%Mastodon Follow\fP\X'tty: link'
+.sp
+Generate scripts to create disc ISOs from a directory structure maximising use of the available
+space on each disc.
 .SH COMMANDS
 .SS gendisc
 .sp
@@ -44,6 +49,11 @@ gendisc [OPTIONS] PATH
 .UNINDENT
 .sp
 Options
+.INDENT 0.0
+.TP
+.B \-\-cross\-fs
+Allow crossing file systems.
+.UNINDENT
 .INDENT 0.0
 .TP
 .B \-D, \-\-drive <drive>
@@ -72,12 +82,12 @@ Prefix for volume ID and files.
 .INDENT 0.0
 .TP
 .B \-r, \-\-delete
-Issue rm commands instead of trash.
+Unlink instead of sending to trash.
 .UNINDENT
 .INDENT 0.0
 .TP
-.B \-\-cross\-fs
-Allow crossing file systems.
+.B \-\-no\-labels
+Do not create labels.
 .UNINDENT
 .sp
 Arguments
@@ -85,6 +95,129 @@ Arguments
 .TP
 .B PATH
 Required argument
+.UNINDENT
+.SS Output
+.sp
+The output consists of a series of shell scripts (1 for each disc) that perform the following steps:
+.INDENT 0.0
+.IP \(bu 2
+Generate the ISO image for the current set using \fBmkisofs\fP\&.
+.IP \(bu 2
+Save a SHA256 checksum of the image for verification.
+.IP \(bu 2
+Save a directory tree listing (requires \fBtree\fP).
+.IP \(bu 2
+Save a file listing using \fBfind\fP\&.
+.IP \(bu 2
+Prompt to insert a blank disc.
+.IP \(bu 2
+Burn the image to disc using \fBcdrecord\fP (default speed: 4x).
+.IP \(bu 2
+Eject and re\-insert the disc.
+.IP \(bu 2
+Verify the disc.
+.IP \(bu 2
+Delete or move the source files to the bin.
+.IP \(bu 2
+Eject the disc.
+.IP \(bu 2
+Prompt to move the disc to a label printer.
+.UNINDENT
+.sp
+If \fBmogrify\fP (ImageMagick) is installed, a label will be generated. This label can be opened in a
+tool that supports disc printing (such as GIMP). In GIMP, set the \fIWidth\fP and \fIHeight\fP to 12 cm in
+\fIImage Settings\fP in the print dialogue before printing. I am using an Epson XP\-7100 printer for this
+purpose.
+.SH LABEL GENERATION
+.SS genlabel
+.sp
+Generate an image intended for printing on disc consisting of text in a spiral.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+genlabel [OPTIONS] [TEXT]...
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Options
+.INDENT 0.0
+.TP
+.B \-E, \-\-end\-theta <end_theta>
+End theta.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-H, \-\-height <height>
+Height of the image.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-S, \-\-space\-per\-loop <space_per_loop>
+Space per loop.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-T, \-\-start\-theta <start_theta>
+Start theta.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-V, \-\-view\-box <view_box>
+SVG view box.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-dpi <dpi>
+Dots per inch.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-keep\-svg
+When generating the PNG, keep the SVG file.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-c, \-\-center <center>
+Center of the spiral.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-f, \-\-font\-size <font_size>
+Font size.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-g, \-\-svg
+Output SVG.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-o, \-\-output <output>
+Output file name.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-r, \-\-start\-radius <start_radius>
+Start radius.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-t, \-\-theta\-step <theta_step>
+Theta step.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-w, \-\-width <width>
+Width of the image.
+.UNINDENT
+.sp
+Arguments
+.INDENT 0.0
+.TP
+.B TEXT
+Optional argument(s)
 .UNINDENT
 .SH AUTHOR
 Andrew Udvare <audvare@gmail.com>
