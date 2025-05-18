@@ -69,7 +69,7 @@ The output is a series of shell scripts (1 for each disc) that do the following:
 - Ejects the disc.
 - Requests to move the disc to a label printer.
 
-If you have `mogrify` (ImageMagick) installed, a label will be generated. This can be then opened in
-a tool that can ask your printer (such as an Epson XP-7100) to print to disc (GIMP). In GIMP, be
-sure to set the _Width_ and _Height_ to 12 cm in _Image Settings_ in the print dialogue before
-printing.
+If you have `mogrify` (ImageMagick) and Inkscape installed, a label will be generated. This can be
+then opened in a tool that can have your printer (such as an Epson XP-7100) print to disc (GIMP).
+In GIMP, be sure to set the _Width_ and _Height_ to 12 cm in _Image Settings_ in the print dialogue
+before printing.

@@ -75,8 +75,9 @@ gendisc
       :target: https://hostux.social/@Tatsh
       :alt: Mastodon Follow
 
-Generate scripts to create disc ISOs from a directory structure maximising use of the available
-space on each disc.
+Generate scripts to create disc ISOs from a directory structure (mostly) maximising use of the available
+space on each disc. This is useful for creating backups of large amounts of data that do not fit on
+a single disc. Directories larger than a disc are split into multiple discs.
 
 Commands
 --------
@@ -94,7 +95,7 @@ The output consists of a series of shell scripts (1 for each disc) that perform 
 - Save a SHA256 checksum of the image for verification.
 - Save a directory tree listing (requires ``tree``).
 - Save a file listing using ``find``.
-- Prompt to insert a blank disc.
+- Prompt to insert a blank disc. It will tell you the kind of disc to use.
 - Burn the image to disc using ``cdrecord`` (default speed: 4x).
 - Eject and re-insert the disc.
 - Verify the disc.
@@ -102,10 +103,10 @@ The output consists of a series of shell scripts (1 for each disc) that perform 
 - Eject the disc.
 - Prompt to move the disc to a label printer.
 
-If ``mogrify`` (ImageMagick) is installed, a label will be generated. This label can be opened in a
-tool that supports disc printing (such as GIMP). In GIMP, set the *Width* and *Height* to 12 cm in
-*Image Settings* in the print dialogue before printing. I am using an Epson XP-7100 printer for this
-purpose.
+If you have `mogrify` (ImageMagick) and Inkscape installed, a label will be generated. This label
+can be opened in a tool that supports disc printing (such as GIMP). In GIMP, set the *Width* and
+*Height* to 12 cm in *Image Settings* in the print dialogue before printing. I am using an Epson
+XP-7100 printer for this purpose.
 
 Label generation
 ----------------
