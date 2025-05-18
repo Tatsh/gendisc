@@ -37,11 +37,11 @@ def test_main_default_values(runner: CliRunner, mocker: MockerFixture) -> None:
     args, kwargs = mock_splitter.call_args
     assert args[0] == 'test_path'
     assert args[1] == 'test_path'
-    assert args[2] == 'trash'
-    assert args[3] == '/dev/sr0'
-    assert args[4] == Path.cwd()
-    assert args[5] == 1
+    assert kwargs['delete_command'] == 'trash'
+    assert kwargs['drive'] == '/dev/sr0'
+    assert kwargs['output_dir'] == Path.cwd()
     assert kwargs['cross_fs'] is False
+    assert kwargs['labels'] is True
 
 
 def test_main_delete_option(runner: CliRunner, mocker: MockerFixture) -> None:
@@ -50,5 +50,5 @@ def test_main_delete_option(runner: CliRunner, mocker: MockerFixture) -> None:
     mock_splitter = mocker.patch('gendisc.main.DirectorySplitter')
     runner.invoke(main, ['test_path', '--delete'])
     mock_splitter.assert_called_once()
-    args, _kwargs = mock_splitter.call_args
-    assert args[2] == 'rm -rf'
+    _args, kwargs = mock_splitter.call_args
+    assert kwargs['delete_command'] == 'rm -rf'
