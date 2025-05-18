@@ -6,6 +6,7 @@ borderopacity
 bsky
 burnfree
 cdrecord
+cifs
 codeowners
 colored
 colorlog

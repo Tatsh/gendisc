@@ -9,6 +9,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.4] - 2025-05-18
+
+### Added
+
+- Workaround `os.walk` mistakenly putting directories in the filenames list. This is happening for
+  me on Linux with CIFS and the `unix` option enabled (server side has
+  `smb3 unix extensions = on`). Report the issue once at warning level.
+
+### Changed
+
+- Skip directories named `.Trash-*`, `Trash`, and `.Trash`.
+
+### Fixed
+
+- Escape text in SVG generation.
+
 ## [0.0.3] - 2025-05-18
 
 ### Changed
@@ -25,4 +41,4 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 First version.
 
-[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.3...master
+[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.4...master
