@@ -322,9 +322,9 @@ echo 'Move disc to printer.'
 
     def split(self) -> None:
         """Split the directory into sets."""
-        cmd = ('find', str(Path(self._path).resolve(strict=True)), '-maxdepth', '1', '!', '-name',
-               '.directory', '!', '(', '-type', 'd', '(', '-name', '.Trash-*', '-o', '-name',
-               'Trash', '-o', '-name', '.Trash', ')', ')')
+        cmd = ('find', str(Path(self._path).resolve(strict=True)), '-maxdepth', '1', '(', '-name',
+               '.Trash-*', '-o', '-name', 'Trash', '-o', '-name', '.Trash', '-o', '-name',
+               '.directory', ')', '-prune', '-o', '-print')
         log.debug('Running %s', ' '.join(quote(x) for x in cmd))
         for dir_ in sorted(sorted(
                 sp.run(cmd, check=True, text=True, capture_output=True).stdout.splitlines()[1:]),
