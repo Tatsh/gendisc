@@ -163,6 +163,7 @@ class LazyMounts(Sequence[str]):
         return len(self._mounts)
 
 
+ISO_MAX_VOLID_LENGTH = 32
 MOUNTS = LazyMounts()
 
 
@@ -258,6 +259,8 @@ class DirectorySplitter:
             index = len(self._sets) + self._starting_index
             fn_prefix = f'{self._prefix}-{index:03d}'
             volid = f'{self._prefix}-{index:02d}'
+            if len(volid) > ISO_MAX_VOLID_LENGTH:
+                volid = f'{volid[:29]}-{index:02d}'
             iso_file = str(self._output_dir_p / f'{fn_prefix}.iso')
             list_txt_file = f'{self._output_dir_p / volid}.list.txt'
             pl_filename = f'{fn_prefix}.path-list.txt'
@@ -269,10 +272,13 @@ class DirectorySplitter:
                                                           encoding='utf-8')
             (self._output_dir_p / sh_filename).write_text(rf"""#!/usr/bin/env bash
 find {quote(str(self._path))} -type f -name .directory -delete
-mkisofs -graft-points -volid {quote(volid)} -appid gendisc -sysid LINUX -rational-rock \
+if ! mkisofs -graft-points -volid {quote(volid)} -appid gendisc -sysid LINUX -rational-rock \
     -no-cache-inodes -udf -full-iso9660-filenames -disable-deep-relocation -iso-level 3 \
-    -path-list {quote(str(self._output_dir_p / pl_filename))} \
-    -o {quote(iso_file)}
+    -path-list {quote(str(self._output_dir_p / pl_filename))} -o {quote(iso_file)}; then
+    echo 'mkisofs failed!'
+    rm -f {quote(iso_file)}
+    exit 1
+fi
 echo 'Size: {convert_size_bytes_to_string(self._total)}'
 pv {quote(iso_file)} | sha256sum > {quote(sha256_filename)}
 loop_dev=$(udisksctl loop-setup --no-user-interaction -r -f {quote(iso_file)} 2>&1 |

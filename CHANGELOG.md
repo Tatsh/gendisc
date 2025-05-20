@@ -24,6 +24,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Escape text in SVG generation.
+- Keep volume ID <= 32 characters.
 
 ## [0.0.3] - 2025-05-18
 
