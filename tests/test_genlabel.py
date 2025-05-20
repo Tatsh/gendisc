@@ -69,7 +69,7 @@ def test_write_spiral_text_svg_writes_file(mocker: MockerFixture) -> None:
     text = 'test spiral'
     # Should not raise
     write_spiral_text_svg(filename, text, width=123, height=456, font_size=22)
-    mock_create_svg.assert_called_once_with(text, 123, 456, None, 22, None, 0, 20, -6840, 0, 30)
+    mock_create_svg.assert_called_once_with(text, 123, 456, None, 22, None, 0, 40, -6840, 0, 30)
     mock_write_text.assert_called_once()
     args, kwargs = mock_write_text.call_args
     assert args[0].startswith('<svg')

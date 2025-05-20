@@ -9,7 +9,19 @@ from tqdm import tqdm
 from wakepy import keep
 import click
 
-from .genlabel import Point, write_spiral_text_png, write_spiral_text_svg
+from .genlabel import (
+    DEFAULT_DPI,
+    DEFAULT_END_THETA,
+    DEFAULT_FONT_SIZE,
+    DEFAULT_SPACE_PER_LOOP,
+    DEFAULT_START_RADIUS,
+    DEFAULT_START_THETA,
+    DEFAULT_THETA_STEP,
+    DEFAULT_WIDTH_HEIGHT,
+    Point,
+    write_spiral_text_png,
+    write_spiral_text_svg,
+)
 from .utils import DirectorySplitter, setup_logging
 
 __all__ = ('main',)
@@ -72,44 +84,52 @@ def main(path: Path,
 @click.argument('text', nargs=-1)
 @click.option('-E', '--end-theta', help='End theta.', type=float, default=0)
 @click.option('-H', '--height', help='Height of the image.', type=int)
-@click.option('-S', '--space-per-loop', help='Space per loop.', type=int, default=20)
-@click.option('-T', '--start-theta', help='Start theta.', type=float, default=-6840)
+@click.option('-S',
+              '--space-per-loop',
+              help='Space per loop.',
+              type=float,
+              default=DEFAULT_SPACE_PER_LOOP)
+@click.option('-T', '--start-theta', help='Start theta.', type=float, default=DEFAULT_START_THETA)
 @click.option('-V',
               '--view-box',
               help='SVG view box.',
               type=click.Tuple((int, int, int, int)),
               required=False)
-@click.option('--dpi', help='Dots per inch.', type=int, default=600)
+@click.option('--dpi', help='Dots per inch.', type=int, default=DEFAULT_DPI)
 @click.option('--keep-svg', help='When generating the PNG, keep the SVG file.', is_flag=True)
 @click.option('-c', '--center', help='Center of the spiral.', type=click.Tuple((float, float)))
 @click.option('-d', '--debug', help='Enable debug logging.', is_flag=True)
-@click.option('-f', '--font-size', help='Font size.', type=float, default=16)
+@click.option('-f', '--font-size', help='Font size.', type=float, default=DEFAULT_FONT_SIZE)
 @click.option('-g', '--svg', help='Output SVG.', is_flag=True)
 @click.option('-o',
               '--output',
               help='Output file name.',
               type=click.Path(path_type=Path, dir_okay=False),
               default='out.png')
-@click.option('-r', '--start-radius', help='Start radius.', type=float, default=0)
-@click.option('-t', '--theta-step', help='Theta step.', type=float, default=30)
+@click.option('-r',
+              '--start-radius',
+              help='Start radius.',
+              type=float,
+              default=DEFAULT_START_RADIUS)
+@click.option('-t', '--theta-step', help='Theta step.', type=float, default=DEFAULT_THETA_STEP)
 @click.option('-w',
               '--width',
               help='Width of the image.',
               type=click.IntRange(1, 10000),
-              default=400)
+              default=DEFAULT_WIDTH_HEIGHT)
 def genlabel_main(text: tuple[str, ...],
                   output: Path,
                   center: tuple[float, float] | None = None,
-                  dpi: int = 600,
-                  end_theta: float = 0,
-                  font_size: int = 16,
+                  dpi: int = DEFAULT_DPI,
+                  end_theta: float = DEFAULT_END_THETA,
+                  font_size: int = DEFAULT_FONT_SIZE,
                   height: int | None = None,
-                  space_per_loop: int = 20,
-                  start_radius: int = 0,
-                  start_theta: float = -6840,
-                  theta_step: float = 30,
+                  space_per_loop: float = DEFAULT_SPACE_PER_LOOP,
+                  start_radius: int = DEFAULT_START_RADIUS,
+                  start_theta: float = DEFAULT_START_THETA,
+                  theta_step: float = DEFAULT_THETA_STEP,
                   view_box: tuple[int, int, int, int] | None = None,
-                  width: int = 400,
+                  width: int = DEFAULT_WIDTH_HEIGHT,
                   *,
                   debug: bool = False,
                   keep_svg: bool = False,
@@ -135,4 +155,5 @@ def genlabel_main(text: tuple[str, ...],
                               start_theta,
                               end_theta,
                               theta_step,
-                              keep=keep_svg)
+                              keep=keep_svg,
+                              debug=debug)

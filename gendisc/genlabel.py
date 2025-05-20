@@ -85,21 +85,22 @@ def _p_str(point: Point) -> str:
 
 
 _SupportsFloatOrIndex: TypeAlias = SupportsFloat | SupportsIndex
-_DEFAULT_START_RADIUS = 0
-_DEFAULT_SPACE_PER_LOOP = 20
-_DEFAULT_START_THETA = -6840
-_DEFAULT_END_THETA = 0
-_DEFAULT_THETA_STEP = 30
-_DEFAULT_FONT_SIZE = 16
-_DEFAULT_WIDTH_HEIGHT = 400
+DEFAULT_START_RADIUS = 0
+DEFAULT_SPACE_PER_LOOP = 40
+DEFAULT_START_THETA = -6840
+DEFAULT_END_THETA = 0
+DEFAULT_THETA_STEP = 30
+DEFAULT_FONT_SIZE = 32
+DEFAULT_WIDTH_HEIGHT = 800
+DEFAULT_DPI = 300
 
 
 def create_spiral_path(center: Point | None = None,
-                       start_radius: float = _DEFAULT_START_RADIUS,
-                       space_per_loop: float = _DEFAULT_SPACE_PER_LOOP,
-                       start_theta: _SupportsFloatOrIndex = _DEFAULT_START_THETA,
-                       end_theta: _SupportsFloatOrIndex = _DEFAULT_END_THETA,
-                       theta_step: _SupportsFloatOrIndex = _DEFAULT_THETA_STEP) -> str:
+                       start_radius: float = DEFAULT_START_RADIUS,
+                       space_per_loop: float = DEFAULT_SPACE_PER_LOOP,
+                       start_theta: _SupportsFloatOrIndex = DEFAULT_START_THETA,
+                       end_theta: _SupportsFloatOrIndex = DEFAULT_END_THETA,
+                       theta_step: _SupportsFloatOrIndex = DEFAULT_THETA_STEP) -> str:
     """
     Get a path string for a spiral in a SVG file.
 
@@ -128,7 +129,11 @@ def create_spiral_path(center: Point | None = None,
     str
         The path string for the spiral. Goes inside a ``<path>`` in the ``d`` attribute.
     """
-    center = center or Point(_DEFAULT_WIDTH_HEIGHT, _DEFAULT_WIDTH_HEIGHT)
+    log.debug(
+        'Creating spiral path with center %s, start radius %.2f, space per loop %.2f, '
+        'start theta %.2f, end theta %.2f, and theta step %.2f.', center, start_radius,
+        space_per_loop, start_theta, end_theta, theta_step)
+    center = center or Point(DEFAULT_WIDTH_HEIGHT, DEFAULT_WIDTH_HEIGHT)
     # Rename spiral parameters for the formula r = a + bθ.
     a = start_radius  # Start distance from center
     b = space_per_loop / math.pi / 2  # Space between each loop
@@ -172,16 +177,16 @@ def create_spiral_path(center: Point | None = None,
 
 
 def create_spiral_text_svg(text: str,
-                           width: int = _DEFAULT_WIDTH_HEIGHT,
+                           width: int = DEFAULT_WIDTH_HEIGHT,
                            height: int | None = None,
                            view_box: tuple[int, int, int, int] | None = None,
-                           font_size: int = _DEFAULT_FONT_SIZE,
+                           font_size: int = DEFAULT_FONT_SIZE,
                            center: Point | None = None,
-                           start_radius: float = _DEFAULT_START_RADIUS,
-                           space_per_loop: float = _DEFAULT_SPACE_PER_LOOP,
-                           start_theta: _SupportsFloatOrIndex = _DEFAULT_START_THETA,
-                           end_theta: _SupportsFloatOrIndex = _DEFAULT_END_THETA,
-                           theta_step: _SupportsFloatOrIndex = _DEFAULT_THETA_STEP) -> str:
+                           start_radius: float = DEFAULT_START_RADIUS,
+                           space_per_loop: float = DEFAULT_SPACE_PER_LOOP,
+                           start_theta: _SupportsFloatOrIndex = DEFAULT_START_THETA,
+                           end_theta: _SupportsFloatOrIndex = DEFAULT_END_THETA,
+                           theta_step: _SupportsFloatOrIndex = DEFAULT_THETA_STEP) -> str:
     """
     Create a spiral SVG text.
 
@@ -243,16 +248,16 @@ def create_spiral_text_svg(text: str,
 
 def write_spiral_text_svg(filename: str | os.PathLike[str],
                           text: str,
-                          width: int = _DEFAULT_WIDTH_HEIGHT,
+                          width: int = DEFAULT_WIDTH_HEIGHT,
                           height: int | None = None,
                           view_box: tuple[int, int, int, int] | None = None,
-                          font_size: int = _DEFAULT_FONT_SIZE,
+                          font_size: int = DEFAULT_FONT_SIZE,
                           center: Point | None = None,
-                          start_radius: float = _DEFAULT_START_RADIUS,
-                          space_per_loop: float = _DEFAULT_SPACE_PER_LOOP,
-                          start_theta: _SupportsFloatOrIndex = _DEFAULT_START_THETA,
-                          end_theta: _SupportsFloatOrIndex = _DEFAULT_END_THETA,
-                          theta_step: _SupportsFloatOrIndex = _DEFAULT_THETA_STEP) -> None:
+                          start_radius: float = DEFAULT_START_RADIUS,
+                          space_per_loop: float = DEFAULT_SPACE_PER_LOOP,
+                          start_theta: _SupportsFloatOrIndex = DEFAULT_START_THETA,
+                          end_theta: _SupportsFloatOrIndex = DEFAULT_END_THETA,
+                          theta_step: _SupportsFloatOrIndex = DEFAULT_THETA_STEP) -> None:
     """
     Write a spiral text SVG string to a file.
 
@@ -302,18 +307,19 @@ class MogrifyNotFound(FileNotFoundError):
 
 def write_spiral_text_png(filename: str | os.PathLike[str],
                           text: str,
-                          width: int = _DEFAULT_WIDTH_HEIGHT,
+                          width: int = DEFAULT_WIDTH_HEIGHT,
                           height: int | None = None,
                           view_box: tuple[int, int, int, int] | None = None,
-                          dpi: int = 600,
-                          font_size: int = _DEFAULT_FONT_SIZE,
+                          dpi: int = DEFAULT_DPI,
+                          font_size: int = DEFAULT_FONT_SIZE,
                           center: Point | None = None,
-                          start_radius: float = _DEFAULT_START_RADIUS,
-                          space_per_loop: float = _DEFAULT_SPACE_PER_LOOP,
-                          start_theta: _SupportsFloatOrIndex = _DEFAULT_START_THETA,
-                          end_theta: _SupportsFloatOrIndex = _DEFAULT_END_THETA,
-                          theta_step: _SupportsFloatOrIndex = _DEFAULT_THETA_STEP,
+                          start_radius: float = DEFAULT_START_RADIUS,
+                          space_per_loop: float = DEFAULT_SPACE_PER_LOOP,
+                          start_theta: _SupportsFloatOrIndex = DEFAULT_START_THETA,
+                          end_theta: _SupportsFloatOrIndex = DEFAULT_END_THETA,
+                          theta_step: _SupportsFloatOrIndex = DEFAULT_THETA_STEP,
                           *,
+                          debug: bool = False,
                           keep: bool = False) -> None:
     """
     Write a spiral text SVG string to a file.
@@ -366,9 +372,11 @@ def write_spiral_text_png(filename: str | os.PathLike[str],
     svg_file = filename.with_suffix('.svg')
     write_spiral_text_svg(svg_file, text, width, height, view_box, font_size, center, start_radius,
                           space_per_loop, start_theta, end_theta, theta_step)
-    cmd = (mogrify, '-colorspace', 'sRGB', '-units', 'PixelsPerInch', '-density', str(dpi),
-           '-background', 'none', '-gravity', 'center', '-extent', '2550x2550', '-format', 'png',
-           str(svg_file))
+    size_args = ('-density', str(dpi), '-gravity', 'center', '-resize', '2800x2800', '-extent',
+                 '2835x2835')
+    cmd: tuple[str, ...] = (mogrify, '-comment', 'gendisc', '-colorspace', 'sRGB', '-units',
+                            'PixelsPerInch', *size_args, '-background', 'none', '-format', 'png',
+                            str(svg_file))
     log.debug('Running: %s', ' '.join(quote(x) for x in cmd))
     sp.run(cmd, check=True)
     if not filename.exists():

@@ -270,7 +270,14 @@ class DirectorySplitter:
             log.debug('Total: %s', convert_size_bytes_to_string(self._total))
             (self._output_dir_p / pl_filename).write_text('\n'.join(self._current_set) + '\n',
                                                           encoding='utf-8')
-            (self._output_dir_p / sh_filename).write_text(rf"""#!/usr/bin/env bash
+            label_file = self._output_dir_p / f'{fn_prefix}.png'
+            gimp_script_fu = f"""(define (print-label filename)
+  (let* ((image (car (gimp-file-load RUN-INTERACTIVE filename filename))))
+  (file-print-gtk #:run-mode RUN-INTERACTIVE #:image image)))
+(print-label "{label_file}")""".replace('\n', '')
+            sh_file = (self._output_dir_p / sh_filename)
+            sh_file.write_text(
+                rf"""#!/usr/bin/env bash
 find {quote(str(self._path))} -type f -name .directory -delete
 if ! mkisofs -graft-points -volid {quote(volid)} -appid gendisc -sysid LINUX -rational-rock \
     -no-cache-inodes -udf -full-iso9660-filenames -disable-deep-relocation -iso-level 3 \
@@ -283,8 +290,7 @@ echo 'Size: {convert_size_bytes_to_string(self._total)}'
 pv {quote(iso_file)} | sha256sum > {quote(sha256_filename)}
 loop_dev=$(udisksctl loop-setup --no-user-interaction -r -f {quote(iso_file)} 2>&1 |
     rev | awk '{{ print $1 }}' | rev | cut -d. -f1)
-location=$(udisksctl mount --no-user-interaction -b "${{loop_dev}}" | rev | awk '{{ print $1 }}' |
-    rev)
+location=$(udisksctl mount --no-user-interaction -b "${{loop_dev}}" | rev | awk '{{ print $1 }}' | rev)
 pushd "${{location}}" || exit 1
 find . -type f > {quote(list_txt_file)}
 tree > {quote(tree_txt_file)}
@@ -311,9 +317,14 @@ else
 fi
 eject
 echo 'Move disc to printer.'
-""",
-                                                          encoding='utf-8')
-            (self._output_dir_p / sh_filename).chmod(0o755)
+read
+if command -v gimp &> /dev/null && [ -f "{label_file}" ]; then
+    echo 'Opening GIMP.
+    gimp -ns --batch-interpreter=plug-in-script-fu-eval -b {quote(gimp_script_fu)}
+fi
+""",  # noqa: E501
+                encoding='utf-8')
+            sh_file.chmod(0o755)
             log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))
             if self._has_mogrify:
                 log.debug('Creating label for "%s".', volid)
@@ -323,7 +334,7 @@ echo 'Move disc to printer.'
                     sorted(
                         path_list_first_component(x[l_common_prefix + 1:])
                         for x in self._current_set if x.strip()))
-                write_spiral_text_png(self._output_dir_p / f'{fn_prefix}.png', text)
+                write_spiral_text_png(label_file, text)
             self._sets.append(self._current_set)
 
     def split(self) -> None:
