@@ -278,16 +278,34 @@ class DirectorySplitter:
             sh_file = (self._output_dir_p / sh_filename)
             sh_file.write_text(
                 rf"""#!/usr/bin/env bash
-find {quote(str(self._path))} -type f -name .directory -delete
-if ! mkisofs -graft-points -volid {quote(volid)} -appid gendisc -sysid LINUX -rational-rock \
-    -no-cache-inodes -udf -full-iso9660-filenames -disable-deep-relocation -iso-level 3 \
-    -path-list {quote(str(self._output_dir_p / pl_filename))} -o {quote(iso_file)}; then
-    echo 'mkisofs failed!'
-    rm -f {quote(iso_file)}
-    exit 1
+mk-image() {{
+    if ! mkisofs -graft-points -volid {quote(volid)} -appid gendisc -sysid LINUX -rational-rock \
+            -no-cache-inodes -udf -full-iso9660-filenames -disable-deep-relocation -iso-level 3 \
+            -path-list {quote(str(self._output_dir_p / pl_filename))} -o {quote(iso_file)}; then
+        echo 'mkisofs failed!' >&2
+        rm -f {quote(iso_file)}
+        return 1
+    fi
+    echo 'Size: {convert_size_bytes_to_string(self._total)}'
+    pv {quote(iso_file)} | sha256sum > {quote(sha256_filename)}
+}}
+if [[ "$1" == '--only-iso' || "$1" == '-O' ]]; then
+    only_iso=1
 fi
-echo 'Size: {convert_size_bytes_to_string(self._total)}'
-pv {quote(iso_file)} | sha256sum > {quote(sha256_filename)}
+find {quote(str(self._path))} -type f -name .directory -delete
+if [ -f {quote(iso_file)} ]; then
+    echo 'Re-create ISO image? If you answer y you must be sure the image was created successfully!'
+    read -r -p 'y/n: ' answer
+    if [[ "${{answer,,}}" == 'y' ]]; then
+        mk-image || exit 1
+    fi
+else
+    mk-image || exit 1
+fi
+if (( only_iso )); then
+    echo 'Only creating ISO image.'
+    exit
+fi
 loop_dev=$(udisksctl loop-setup --no-user-interaction -r -f {quote(iso_file)} 2>&1 |
     rev | awk '{{ print $1 }}' | rev | cut -d. -f1)
 location=$(udisksctl mount --no-user-interaction -b "${{loop_dev}}" | rev | awk '{{ print $1 }}' | rev)
@@ -304,7 +322,6 @@ delay 120
 cdrecord {dev_arg} gracetime=2 -v driveropts=burnfree speed=4 -eject -sao {quote(iso_file)}
 eject -t
 delay 30
-# wait-for-disc -w 15 '{quote(str(self._drive))}'
 this_sum=$(pv {quote(str(self._drive))} | sha256sum)
 expected_sum=$(< {quote(sha256_filename)})
 if [[ "${{this_sum}}" != "${{expected_sum}}" ]]; then

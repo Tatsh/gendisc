@@ -102,11 +102,11 @@ The output consists of a series of shell scripts (1 for each disc) that perform 
 - Delete or move the source files to the bin.
 - Eject the disc.
 - Prompt to move the disc to a label printer.
+- Open GIMP if you have it installed to the printer dialogue.
 
 If you have `mogrify` (ImageMagick) and Inkscape installed, a label will be generated. This label
-can be opened in a tool that supports disc printing (such as GIMP). In GIMP, set the *Width* and
-*Height* to 12 cm in *Image Settings* in the print dialogue before printing. I am using an Epson
-XP-7100 printer for this purpose.
+can be opened in a tool that supports disc printing (such as GIMP). The image should be ready for
+printing (under `Image Settings` you should see it is exactly 12 cm at DPI 600).
 
 Label generation
 ----------------
