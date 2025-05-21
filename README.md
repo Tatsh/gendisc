@@ -74,3 +74,19 @@ If you have `mogrify` (ImageMagick) and Inkscape installed, a label will be gene
 then opened in a tool that can have your printer (such as an Epson XP-7100) print to disc (GIMP).
 The image should be ready for printing (under `Image Settings` you should see it is exactly 12 cm at
 DPI 600).
+
+Many of the steps above can be skipped by passing flags to the script. Currently the script supports
+these options:
+
+```plain
+Usage: script.sh [-h] [-G] [-K] [-k] [-O] [-s] [-S] [-V]
+All flags default to no.
+  -h: Show this help message.
+  -G: Do not open GIMP on completion (if label file exists).
+  -K: Keep ISO image after burning.
+  -k: Keep source files after burning.
+  -O: Only create ISO image.
+  -s: Skip clean-up of .directory files.
+  -S: Skip ejecting tray for blank disc (assume already inserted).
+  -V: Skip verification of burnt disc.
+```

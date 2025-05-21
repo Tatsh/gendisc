@@ -261,40 +261,86 @@ class DirectorySplitter:
             volid = f'{self._prefix}-{index:02d}'
             if len(volid) > ISO_MAX_VOLID_LENGTH:
                 volid = f'{volid[:29]}-{index:02d}'
-            iso_file = str(self._output_dir_p / f'{fn_prefix}.iso')
-            list_txt_file = f'{self._output_dir_p / volid}.list.txt'
+            output_dir = self._output_dir_p / fn_prefix
+            output_dir.mkdir(parents=True, exist_ok=True)
+            iso_file = str(output_dir / f'{fn_prefix}.iso')
+            list_txt_file = f'{output_dir / volid}.list.txt'
             pl_filename = f'{fn_prefix}.path-list.txt'
             sh_filename = f'generate-{fn_prefix}.sh'
             sha256_filename = f'{iso_file}.sha256sum'
-            tree_txt_file = f'{self._output_dir_p / volid}.tree.txt'
+            tree_txt_file = f'{output_dir / volid}.tree.txt'
             log.debug('Total: %s', convert_size_bytes_to_string(self._total))
-            (self._output_dir_p / pl_filename).write_text('\n'.join(self._current_set) + '\n',
-                                                          encoding='utf-8')
-            label_file = self._output_dir_p / f'{fn_prefix}.png'
+            pl_file = output_dir / pl_filename
+            pl_file.write_text('\n'.join(self._current_set) + '\n', encoding='utf-8')
+            label_file = output_dir / f'{fn_prefix}.png'
             gimp_script_fu = f"""(define (print-label filename)
   (let* ((image (car (gimp-file-load RUN-INTERACTIVE filename filename))))
   (file-print-gtk #:run-mode RUN-INTERACTIVE #:image image)))
 (print-label "{label_file}")""".replace('\n', '')
-            sh_file = (self._output_dir_p / sh_filename)
+            delete_command = (
+                f'{self._delete_command} {shlex.join(y.rsplit("=", 1)[-1] for y in self._current_set)}'  # noqa: E501
+                if self._delete_command else '')
+            sh_file = (output_dir / sh_filename)
             sh_file.write_text(
                 rf"""#!/usr/bin/env bash
 mk-image() {{
     if ! mkisofs -graft-points -volid {quote(volid)} -appid gendisc -sysid LINUX -rational-rock \
             -no-cache-inodes -udf -full-iso9660-filenames -disable-deep-relocation -iso-level 3 \
-            -path-list {quote(str(self._output_dir_p / pl_filename))} -o {quote(iso_file)}; then
+            -path-list {quote(str(pl_file))} -o {quote(iso_file)}; then
         echo 'mkisofs failed!' >&2
         rm -f {quote(iso_file)}
         return 1
     fi
     echo 'Size: {convert_size_bytes_to_string(self._total)} ({self._total:,} bytes)'
     pv {quote(iso_file)} | sha256sum > {quote(sha256_filename)}
+    loop_dev=$(udisksctl loop-setup --no-user-interaction -r -f {quote(iso_file)} 2>&1 |
+        rev | awk '{{ print $1 }}' | rev | cut -d. -f1)
+    location=$(udisksctl mount --no-user-interaction -b "${{loop_dev}}" | rev | awk '{{ print $1 }}' | rev)
+    pushd "${{location}}" || exit 1
+    find . -type f > {quote(list_txt_file)}
+    tree > {quote(tree_txt_file)}
+    popd || exit 1
+    udisksctl unmount --no-user-interaction --object-path "block_devices/$(basename "${{loop_dev}}")"
+    udisksctl loop-delete --no-user-interaction -b "${{loop_dev}}"
 }}
-if [[ "$1" == '--only-iso' || "$1" == '-O' ]]; then
-    only_iso=1
+opt_str=':hGKOSVks'
+keep_files=0
+keep_iso=0
+only_iso=0
+open_gimp=1
+skip_cleanup=0
+skip_verification=0
+skip_wait_for_disc=0
+while getopts "${{opt_str}}" opt; do
+    case $opt in
+        G) open_gimp=0 ;;
+        K) keep_iso=1 ;;
+        O) only_iso=1 ;;
+        S) skip_wait_for_disc=1 ;;
+        V) skip_verification=1 ;;
+        k) keep_files=1 ;;
+        s) skip_cleanup=1 ;;
+        h) echo "Usage: $0 [-h] [-G] [-K] [-k] [-O] [-s] [-S] [-V]"
+           echo 'All flags default to no.'
+           echo '  -h: Show this help message.'
+           echo '  -G: Do not open GIMP on completion (if label file exists).'
+           echo '  -K: Keep ISO image after burning.'
+           echo '  -k: Keep source files after burning.'
+           echo '  -O: Only create ISO image.'
+           echo '  -S: Skip ejecting tray for blank disc (assume already inserted).'
+           echo '  -s: Skip clean-up of .directory files.'
+           echo '  -V: Skip verification of burnt disc.'
+           exit 0 ;;
+        ?) echo 'Invalid option: -$OPTARG' >&2 ;;
+        :) echo 'Option -$OPTARG requires an argument.' >&2 ;;
+    esac
+done
+if ! (( skip_cleanup )); then
+    echo 'Deleting .directory files.'
+    find {quote(str(self._path))} -type f -name .directory -delete
 fi
-find {quote(str(self._path))} -type f -name .directory -delete
 if [ -f {quote(iso_file)} ]; then
-    echo 'Re-create ISO image? If you answer y you must be sure the image was created successfully!'
+    echo 'Re-create ISO image? If you answer n you must be sure the image was created successfully!'
     read -r -p 'y/n: ' answer
     if [[ "${{answer,,}}" == 'y' ]]; then
         mk-image || exit 1
@@ -306,36 +352,33 @@ if (( only_iso )); then
     echo 'Only creating ISO image.'
     exit
 fi
-loop_dev=$(udisksctl loop-setup --no-user-interaction -r -f {quote(iso_file)} 2>&1 |
-    rev | awk '{{ print $1 }}' | rev | cut -d. -f1)
-location=$(udisksctl mount --no-user-interaction -b "${{loop_dev}}" | rev | awk '{{ print $1 }}' | rev)
-pushd "${{location}}" || exit 1
-find . -type f > {quote(list_txt_file)}
-tree > {quote(tree_txt_file)}
-popd || exit 1
-udisksctl unmount --no-user-interaction --object-path "block_devices/$(basename "${{loop_dev}}")"
-udisksctl loop-delete --no-user-interaction -b "${{loop_dev}}"
-eject
-echo 'Insert a blank disc ({get_disc_type(self._total)} or higher) and press return.'
-read
-delay 120
+if ! (( skip_wait_for_disc )); then
+    eject
+    echo 'Insert a blank disc ({get_disc_type(self._total)} or higher) and press return.'
+    read
+    delay 120 || sleep 120
+fi
 cdrecord {dev_arg} gracetime=2 -v driveropts=burnfree speed=4 -eject -sao {quote(iso_file)}
 eject -t
-delay 30
+delay 30 || sleep 30
 this_sum=$(pv {quote(str(self._drive))} | sha256sum)
 expected_sum=$(< {quote(sha256_filename)})
 if [[ "${{this_sum}}" != "${{expected_sum}}" ]]; then
     echo 'Burnt disc is invalid!'
     exit 1
-else
-    rm {quote(iso_file)}
-    {self._delete_command} {shlex.join(y.rsplit("=", 1)[-1] for y in self._current_set)}
-    echo 'OK.'
 fi
+if ! (( keep_iso )); then
+    rm {quote(iso_file)}
+fi
+if ! (( keep_files )); then
+    echo 'Delaying 30 seconds before deleting source files.'
+    delay 30 || sleep 30
+    {delete_command}
+fi
+echo 'OK.'
 eject
 echo 'Move disc to printer.'
-read
-if command -v gimp &> /dev/null && [ -f "{label_file}" ]; then
+if (( open_gimp )) && command -v gimp &> /dev/null && [ -f "{label_file}" ]; then
     echo 'Opening GIMP.
     gimp -ns --batch-interpreter=plug-in-script-fu-eval -b {quote(gimp_script_fu)}
 fi
@@ -346,8 +389,7 @@ fi
             if self._has_mogrify:
                 log.debug('Creating label for "%s".', volid)
                 l_common_prefix = len(self._prefix_parts[-1])
-                text = f'{volid} || '
-                text += ' | '.join(
+                text = f'{volid} || ' + ' | '.join(
                     sorted(
                         path_list_first_component(x[l_common_prefix + 1:])
                         for x in self._current_set if x.strip()))

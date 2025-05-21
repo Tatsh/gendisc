@@ -135,8 +135,8 @@ def test_directory_splitter_split_skips_cross_fs(mocker: MockerFixture) -> None:
     assert len(splitter._sets) == 1
     assert all('dir1' in entry for entry in splitter._sets[0])
     assert all('dir2' not in entry for entry in splitter._sets[0])
-    mock_write_spiral.assert_called_once_with(mock_path.return_value.__truediv__.return_value,
-                                              'prefix-01 || ')
+    mock_write_spiral.assert_called_once_with(
+        mock_path.return_value.__truediv__.return_value.__truediv__.return_value, 'prefix-01 || ')
 
 
 def test_directory_splitter_split_file_too_large_for_bluray(mocker: MockerFixture) -> None:

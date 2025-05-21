@@ -25,6 +25,7 @@ doctrees
 driveropts
 eeyore
 epson
+esac
 esbenp
 esbonio
 excinfo
@@ -34,6 +35,8 @@ furb
 gendisc
 genindex
 genlabel
+getopts
+gkos
 globaltoc
 gracetime
 hoverxref
@@ -57,6 +60,7 @@ namedview
 norecursedirs
 numpy
 numpydoc
+optarg
 pagecheckerboard
 pagecolor
 pageopacity
