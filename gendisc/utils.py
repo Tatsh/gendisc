@@ -286,7 +286,7 @@ mk-image() {{
         rm -f {quote(iso_file)}
         return 1
     fi
-    echo 'Size: {convert_size_bytes_to_string(self._total)}'
+    echo 'Size: {convert_size_bytes_to_string(self._total)} ({self._total:,} bytes)'
     pv {quote(iso_file)} | sha256sum > {quote(sha256_filename)}
 }}
 if [[ "$1" == '--only-iso' || "$1" == '-O' ]]; then
