@@ -9,7 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.0.4] - 2025-05-18
+## [0.0.4] - 2025-05-21
 
 ### Added
 
@@ -18,6 +18,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `smb3 unix extensions = on`). Report the issue once at warning level.
 - Open GIMP to the printer dialogue if it is installed for label printing (unless `-G` is passed to
   the generation script).
+- Ability to change write speed for individual disc types. Defaults are values intended for use with
+  current Verbatim/Ritek printable media and Sony's 128 GB disc (4X).
 
 ### Changed
 

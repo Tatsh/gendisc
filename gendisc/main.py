@@ -22,7 +22,7 @@ from .genlabel import (
     write_spiral_text_png,
     write_spiral_text_svg,
 )
-from .utils import DirectorySplitter, setup_logging
+from .utils import DirectorySplitter, WriteSpeeds, setup_logging
 
 __all__ = ('main',)
 
@@ -52,11 +52,25 @@ log = logging.getLogger(__name__)
 @click.option('-p', '--prefix', help='Prefix for volume ID and files.')
 @click.option('-r', '--delete', help='Unlink instead of sending to trash.', is_flag=True)
 @click.option('--no-labels', help='Do not create labels.', is_flag=True)
+@click.option('--cd-write-speed', help='CD-R write speed.', type=int, default=24)
+@click.option('--dvd-write-speed', help='DVD-R write speed.', type=int, default=8)
+@click.option('--dvd-dl-write-speed', help='DVD-R DL write speed.', type=float, default=8)
+@click.option('--bd-write-speed', help='BD-R write speed.', type=int, default=4)
+@click.option('--bd-dl-write-speed', help='BD-R DL write speed.', type=int, default=6)
+@click.option('--bd-tl-write-speed', help='BD-R TL write speed.', type=int, default=4)
+@click.option('--bd-xl-write-speed', help='BD-R XL write speed.', type=int, default=4)
 def main(path: Path,
          output_dir: Path,
          drive: Path,
          prefix: str | None = None,
          starting_index: int = 0,
+         cd_write_speed: int = 24,
+         dvd_write_speed: int = 8,
+         dvd_dl_write_speed: float = 8,
+         bd_write_speed: int = 4,
+         bd_dl_write_speed: int = 6,
+         bd_tl_write_speed: int = 4,
+         bd_xl_write_speed: int = 4,
          *,
          cross_fs: bool = False,
          debug: bool = False,
@@ -77,7 +91,14 @@ def main(path: Path,
                           output_dir=output_dir_p,
                           starting_index=starting_index,
                           cross_fs=cross_fs,
-                          labels=not no_labels).split()
+                          labels=not no_labels,
+                          write_speeds=WriteSpeeds(cd=cd_write_speed,
+                                                   dvd=dvd_write_speed,
+                                                   dvd_dl=dvd_dl_write_speed,
+                                                   bd=bd_write_speed,
+                                                   bd_dl=bd_dl_write_speed,
+                                                   bd_tl=bd_tl_write_speed,
+                                                   bd_xl=bd_xl_write_speed)).split()
 
 
 @click.command(context_settings={'help_option_names': ('-h', '--help')})

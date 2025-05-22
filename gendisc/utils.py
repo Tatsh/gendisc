@@ -6,7 +6,7 @@ from functools import cache
 from os import walk
 from os.path import isdir, islink
 from pathlib import Path
-from typing import Literal, overload
+from typing import Literal, NamedTuple, overload
 import logging
 import logging.config
 import os
@@ -31,7 +31,7 @@ from .constants import (
 )
 from .genlabel import write_spiral_text_png
 
-__all__ = ('DirectorySplitter', 'get_disc_type')
+__all__ = ('DirectorySplitter', 'WriteSpeeds', 'get_disc_type')
 
 log = logging.getLogger(__name__)
 
@@ -209,6 +209,49 @@ def path_list_first_component(line: str) -> str:
     return re.split(r'(?<!\\)=', line, maxsplit=1)[0].replace('\\=', '=')
 
 
+class WriteSpeeds(NamedTuple):
+    """Write speeds for different disc types."""
+    cd: int = 24
+    """CD-R write speed."""
+    dvd: int = 8
+    """DVD-R write speed."""
+    dvd_dl: float = 8
+    """DVD-R DL write speed."""
+    bd: int = 4
+    """BD-R write speed."""
+    bd_dl: int = 6
+    """BD-R DL write speed."""
+    bd_tl: int = 4
+    """BD-R TL write speed."""
+    bd_xl: int = 4
+    """BD-R XL write speed."""
+    def get_speed(self, disc_type: _DiscType) -> int | float:  # noqa: PLR0911
+        """
+        Get the write speed for the given disc type.
+
+        Raises
+        ------
+        ValueError
+            If the disc type is unknown.
+        """
+        if disc_type == 'CD-R':
+            return self.cd
+        if disc_type == 'DVD-R':
+            return self.dvd
+        if disc_type == 'DVD-R DL':
+            return self.dvd_dl
+        if disc_type == 'BD-R':
+            return self.bd
+        if disc_type == 'BD-R DL':
+            return self.bd_dl
+        if disc_type == 'BD-R XL (100 GB)':
+            return self.bd_tl
+        if disc_type == 'BD-R XL (128 GB)':
+            return self.bd_xl
+        msg = f'Unknown disc type: {disc_type}'  # type: ignore[unreachable]
+        raise ValueError(msg)
+
+
 class DirectorySplitter:
     """Split directories into sets for burning to disc."""
     def __init__(self,
@@ -219,6 +262,7 @@ class DirectorySplitter:
                  drive: os.PathLike[str] | str = '/dev/sr0',
                  output_dir: os.PathLike[str] | str = '.',
                  starting_index: int = 1,
+                 write_speeds: WriteSpeeds | None = None,
                  *,
                  cross_fs: bool = False,
                  labels: bool = False) -> None:
@@ -242,6 +286,7 @@ class DirectorySplitter:
         self._total = 0
         self._cached_get_dir_size = cache(get_dir_size)
         self._cached_get_file_size = cache(get_file_size)
+        self._write_speeds = write_speeds or WriteSpeeds()
 
     def _reset(self) -> None:
         self._target_size = BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED
@@ -274,6 +319,9 @@ class DirectorySplitter:
             pl_file = output_dir / pl_filename
             pl_file.write_text('\n'.join(self._current_set) + '\n', encoding='utf-8')
             label_file = output_dir / f'{fn_prefix}.png'
+            disc_type = get_disc_type(self._total)
+            speed = self._write_speeds.get_speed(disc_type)
+            speed_s = f'{speed:.1f}' if isinstance(speed, float) else str(speed)
             gimp_script_fu = f"""(define (print-label filename)
   (let* ((image (car (gimp-file-load RUN-INTERACTIVE filename filename))))
   (file-print-gtk #:run-mode RUN-INTERACTIVE #:image image)))
@@ -363,11 +411,11 @@ if (( only_iso )); then
 fi
 if ! (( skip_wait_for_disc )); then
     eject
-    echo 'Insert a blank disc ({get_disc_type(self._total)} or higher) and press return.'
+    echo 'Insert a blank disc ({disc_type} or higher) and press return.'
     read -r
     delay 120 || sleep 120
 fi
-cdrecord {dev_arg} gracetime=2 -v driveropts=burnfree speed=4 -eject -sao {quote(iso_file)}
+cdrecord {dev_arg} gracetime=2 -v driveropts=burnfree speed={speed_s} -eject -sao {quote(iso_file)}
 eject -t
 delay 30 || sleep 30
 if ! (( skip_verification )); then
