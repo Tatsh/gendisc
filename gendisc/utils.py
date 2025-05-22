@@ -258,18 +258,18 @@ class DirectorySplitter:
             dev_arg = quote(f'dev={self._drive}')
             index = len(self._sets) + self._starting_index
             fn_prefix = f'{self._prefix}-{index:03d}'
-            volid = f'{self._prefix}-{index:02d}'
+            orig_vol_id = volid = f'{self._prefix}-{index:02d}'
             if len(volid) > ISO_MAX_VOLID_LENGTH:
                 volid = f'{volid[:29]}-{index:02d}'
             output_dir = self._output_dir_p / fn_prefix
             output_dir.mkdir(parents=True, exist_ok=True)
             iso_file = str(output_dir / f'{fn_prefix}.iso')
-            list_txt_file = f'{output_dir / volid}.list.txt'
+            list_txt_file = f'{output_dir / orig_vol_id}.list.txt'
             pl_filename = f'{fn_prefix}.path-list.txt'
             sh_filename = f'generate-{fn_prefix}.sh'
             sha256_filename = f'{iso_file}.sha256sum'
-            tree_txt_file = f'{output_dir / volid}.tree.txt'
-            metadata_filename = f'{output_dir / volid}.metadata.json'
+            tree_txt_file = f'{output_dir / orig_vol_id}.tree.txt'
+            metadata_filename = f'{output_dir / orig_vol_id}.metadata.json'
             log.debug('Total: %s', convert_size_bytes_to_string(self._total))
             pl_file = output_dir / pl_filename
             pl_file.write_text('\n'.join(self._current_set) + '\n', encoding='utf-8')
