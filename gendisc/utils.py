@@ -312,7 +312,6 @@ make-image() {{
     echo 'Size: {convert_size_bytes_to_string(self._total)} ({self._total:,} bytes)'
     pv {quote(iso_file)} | sha256sum > {quote(sha256_filename)}
 }}
-opt_str=':hGKOSVks'
 keep_files=0
 keep_iso=0
 only_iso=0
@@ -320,7 +319,7 @@ open_gimp=1
 skip_cleanup=0
 skip_verification=0
 skip_wait_for_disc=0
-while getopts "${{opt_str}}" opt; do
+while getopts ':hGKOSVks' opt; do
     case $opt in
         G) open_gimp=0 ;;
         K) keep_iso=1 ;;
@@ -340,8 +339,8 @@ while getopts "${{opt_str}}" opt; do
            echo '  -s: Skip clean-up of .directory files.'
            echo '  -V: Skip verification of burnt disc.'
            exit 0 ;;
-        ?) echo 'Invalid option: -$OPTARG' >&2 ;;
-        :) echo 'Option -$OPTARG requires an argument.' >&2 ;;
+        :) echo "Option -$OPTARG requires an argument." >&2 ;;
+        ?) echo "Invalid option: -$OPTARG" >&2 ;;
     esac
 done
 if ! (( skip_cleanup )); then
@@ -365,17 +364,19 @@ fi
 if ! (( skip_wait_for_disc )); then
     eject
     echo 'Insert a blank disc ({get_disc_type(self._total)} or higher) and press return.'
-    read
+    read -r
     delay 120 || sleep 120
 fi
 cdrecord {dev_arg} gracetime=2 -v driveropts=burnfree speed=4 -eject -sao {quote(iso_file)}
 eject -t
 delay 30 || sleep 30
-this_sum=$(pv {quote(str(self._drive))} | sha256sum)
-expected_sum=$(< {quote(sha256_filename)})
-if [[ "${{this_sum}}" != "${{expected_sum}}" ]]; then
-    echo 'Burnt disc is invalid!'
-    exit 1
+if ! (( skip_verification )); then
+    this_sum=$(pv {quote(str(self._drive))} | sha256sum)
+    expected_sum=$(< {quote(sha256_filename)})
+    if [[ "${{this_sum}}" != "${{expected_sum}}" ]]; then
+        echo 'Burnt disc is invalid!'
+        exit 1
+    fi
 fi
 if ! (( keep_iso )); then
     rm {quote(iso_file)}
@@ -388,8 +389,8 @@ fi
 echo 'OK.'
 eject
 echo 'Move disc to printer.'
-if (( open_gimp )) && command -v gimp &> /dev/null && [ -f "{label_file}" ]; then
-    echo 'Opening GIMP.
+if (( open_gimp )) && command -v gimp &> /dev/null && [ -f {quote(str(label_file))} ]; then
+    echo 'Opening GIMP.'
     gimp -ns --batch-interpreter=plug-in-script-fu-eval -b {quote(gimp_script_fu)}
 fi
 """,  # noqa: E501
