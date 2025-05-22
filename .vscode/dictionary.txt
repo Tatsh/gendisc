@@ -6,6 +6,7 @@ borderopacity
 bsky
 burnfree
 cdrecord
+cdrtools
 cifs
 codeowners
 colored
@@ -13,6 +14,7 @@ colorlog
 colorspace
 commitizen
 conftest
+coreutils
 coveragerc
 datatable
 datatables

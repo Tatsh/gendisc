@@ -349,6 +349,16 @@ make-listing() {{
     udisksctl unmount --no-user-interaction --object-path "block_devices/$(basename "${{loop_dev}}")"
     udisksctl loop-delete --no-user-interaction -b "${{loop_dev}}"
 }}
+_sha256sum() {{
+    if command -v sha256sum &>/dev/null; then
+        sha256sum "$@"
+    elif command -v shasum &>/dev/null; then
+        shasum -a 256 "$@"
+    else
+        echo 'Command to calculate SHA256 checksum not found!' >&2
+        return 1
+    fi
+}}
 make-image() {{
     if ! mkisofs -graft-points -volid {quote(volid)} -appid gendisc -sysid LINUX -rational-rock \
             -no-cache-inodes -udf -full-iso9660-filenames -disable-deep-relocation -iso-level 3 \
@@ -358,8 +368,39 @@ make-image() {{
         return 1
     fi
     echo 'Size: {convert_size_bytes_to_string(self._total)} ({self._total:,} bytes)'
-    pv {quote(iso_file)} | sha256sum > {quote(sha256_filename)}
+    pv {quote(iso_file)} | _sha256sum > {quote(sha256_filename)}
 }}
+cdrecord_found=1
+eject_found=1
+mkisofs_found=1
+sha256sum_found=1
+if ! _sha256sum /dev/null &> /dev/null; then
+    sha256sum_found=0
+fi
+if ! command -v mkisofs &> /dev/null; then
+    mkisofs_found=0
+fi
+if ! command -v cdrecord &> /dev/null; then
+    cdrecord_found=0
+fi
+if ! command -v eject &> /dev/null; then
+    eject_found=0
+fi
+found_str() {{
+    if (( $1 )); then
+        echo 'Found    '
+    else
+        echo 'Not found'
+    fi
+}}
+if ! ((mkisofs_found)) || ! ((cdrecord_found)) || ! ((sha256sum_found)) || ! ((eject_found)); then
+    echo 'Missing required commands.' >&2
+    echo "cdrecord:            $(found_str "$cdrecord_found") (cdrtools)" >&2
+    echo "mkisofs:             $(found_str "$mkisofs_found") (cdrtools)" >&2
+    echo "eject:               $(found_str "$eject_found") (util-linux)" >&2
+    echo "sha256sum or shasum: $(found_str "$sha256sum_found") (coreutils or Perl)" >&2
+    exit 1
+fi
 keep_files=0
 keep_iso=0
 only_iso=0
@@ -419,7 +460,7 @@ cdrecord {dev_arg} gracetime=2 -v driveropts=burnfree speed={speed_s} -eject -sa
 eject -t
 delay 30 || sleep 30
 if ! (( skip_verification )); then
-    this_sum=$(pv {quote(str(self._drive))} | sha256sum)
+    this_sum=$(pv {quote(str(self._drive))} | _sha256sum)
     expected_sum=$(< {quote(sha256_filename)})
     if [[ "${{this_sum}}" != "${{expected_sum}}" ]]; then
         echo 'Burnt disc is invalid!'
