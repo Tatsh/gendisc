@@ -29,6 +29,7 @@ esac
 esbenp
 esbonio
 excinfo
+exiftool
 fontawesome
 fsutil
 furb

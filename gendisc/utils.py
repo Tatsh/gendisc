@@ -269,6 +269,7 @@ class DirectorySplitter:
             sh_filename = f'generate-{fn_prefix}.sh'
             sha256_filename = f'{iso_file}.sha256sum'
             tree_txt_file = f'{output_dir / volid}.tree.txt'
+            metadata_filename = f'{output_dir / volid}.metadata.json'
             log.debug('Total: %s', convert_size_bytes_to_string(self._total))
             pl_file = output_dir / pl_filename
             pl_file.write_text('\n'.join(self._current_set) + '\n', encoding='utf-8')
@@ -283,7 +284,24 @@ class DirectorySplitter:
             sh_file = (output_dir / sh_filename)
             sh_file.write_text(
                 rf"""#!/usr/bin/env bash
-mk-image() {{
+make-listing() {{
+    loop_dev=$(udisksctl loop-setup --no-user-interaction -r -f {quote(iso_file)} 2>&1 |
+        rev | awk '{{ print $1 }}' | rev | cut -d. -f1)
+    location=$(udisksctl mount --no-user-interaction -b "${{loop_dev}}" | rev | awk '{{ print $1 }}' | rev)
+    pushd "${{location}}" || exit 1
+    find . -type f > {quote(list_txt_file)}
+    if command -v exiftool &> /dev/null; then
+        find . -type f -exec exiftool -j {{}} ';' > {quote(metadata_filename)}
+        if command -v prettier &> /dev/null; then
+            prettier --print-width 100 {quote(metadata_filename)} > new && mv new {quote(metadata_filename)}
+        fi
+    fi
+    tree > {quote(tree_txt_file)}
+    popd || exit 1
+    udisksctl unmount --no-user-interaction --object-path "block_devices/$(basename "${{loop_dev}}")"
+    udisksctl loop-delete --no-user-interaction -b "${{loop_dev}}"
+}}
+make-image() {{
     if ! mkisofs -graft-points -volid {quote(volid)} -appid gendisc -sysid LINUX -rational-rock \
             -no-cache-inodes -udf -full-iso9660-filenames -disable-deep-relocation -iso-level 3 \
             -path-list {quote(str(pl_file))} -o {quote(iso_file)}; then
@@ -293,15 +311,6 @@ mk-image() {{
     fi
     echo 'Size: {convert_size_bytes_to_string(self._total)} ({self._total:,} bytes)'
     pv {quote(iso_file)} | sha256sum > {quote(sha256_filename)}
-    loop_dev=$(udisksctl loop-setup --no-user-interaction -r -f {quote(iso_file)} 2>&1 |
-        rev | awk '{{ print $1 }}' | rev | cut -d. -f1)
-    location=$(udisksctl mount --no-user-interaction -b "${{loop_dev}}" | rev | awk '{{ print $1 }}' | rev)
-    pushd "${{location}}" || exit 1
-    find . -type f > {quote(list_txt_file)}
-    tree > {quote(tree_txt_file)}
-    popd || exit 1
-    udisksctl unmount --no-user-interaction --object-path "block_devices/$(basename "${{loop_dev}}")"
-    udisksctl loop-delete --no-user-interaction -b "${{loop_dev}}"
 }}
 opt_str=':hGKOSVks'
 keep_files=0
@@ -339,15 +348,16 @@ if ! (( skip_cleanup )); then
     echo 'Deleting .directory files.'
     find {quote(str(self._path))} -type f -name .directory -delete
 fi
-if [ -f {quote(iso_file)} ]; then
+if [ -f {quote(iso_file)} ] && [ -f {quote(sha256_filename)} ]; then
     echo 'Re-create ISO image? If you answer n you must be sure the image was created successfully!'
     read -r -p 'y/n: ' answer
     if [[ "${{answer,,}}" == 'y' ]]; then
-        mk-image || exit 1
+        make-image || exit 1
     fi
 else
-    mk-image || exit 1
+    make-image || exit 1
 fi
+make-listing || exit 1
 if (( only_iso )); then
     echo 'Only creating ISO image.'
     exit
