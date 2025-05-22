@@ -27,12 +27,13 @@ level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
 .\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
 .in \\n[rst2man-indent\\n[rst2man-indent-level]]u
 ..
-.TH "GENDISC" "1" "May 18, 2025" "0.0.3" "gendisc"
+.TH "GENDISC" "1" "May 22, 2025" "0.0.3" "gendisc"
 .SH NAME
 gendisc \- gendisc v0.0.3
 .sp
-Generate scripts to create disc ISOs from a directory structure maximising use of the available
-space on each disc.
+Generate scripts to create disc ISOs from a directory structure (mostly) maximising use of the available
+space on each disc. This is useful for creating backups of large amounts of data that do not fit on
+a single disc. Directories larger than a disc are split into multiple discs.
 .SH COMMANDS
 .SS gendisc
 .sp
@@ -87,6 +88,41 @@ Unlink instead of sending to trash.
 .B \-\-no\-labels
 Do not create labels.
 .UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-cd\-write\-speed <cd_write_speed>
+CD\-R write speed.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-dvd\-write\-speed <dvd_write_speed>
+DVD\-R write speed.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-dvd\-dl\-write\-speed <dvd_dl_write_speed>
+DVD\-R DL write speed.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-bd\-write\-speed <bd_write_speed>
+BD\-R write speed.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-bd\-dl\-write\-speed <bd_dl_write_speed>
+BD\-R DL write speed.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-bd\-tl\-write\-speed <bd_tl_write_speed>
+BD\-R TL write speed.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-bd\-xl\-write\-speed <bd_xl_write_speed>
+BD\-R XL write speed.
+.UNINDENT
 .sp
 Arguments
 .INDENT 0.0
@@ -107,7 +143,7 @@ Save a directory tree listing (requires \fBtree\fP).
 .IP \(bu 2
 Save a file listing using \fBfind\fP\&.
 .IP \(bu 2
-Prompt to insert a blank disc.
+Prompt to insert a blank disc. It will tell you the kind of disc to use.
 .IP \(bu 2
 Burn the image to disc using \fBcdrecord\fP (default speed: 4x).
 .IP \(bu 2
@@ -120,12 +156,33 @@ Delete or move the source files to the bin.
 Eject the disc.
 .IP \(bu 2
 Prompt to move the disc to a label printer.
+.IP \(bu 2
+Open GIMP if you have it installed to the printer dialogue.
 .UNINDENT
 .sp
-If \fBmogrify\fP (ImageMagick) is installed, a label will be generated. This label can be opened in a
-tool that supports disc printing (such as GIMP). In GIMP, set the \fIWidth\fP and \fIHeight\fP to 12 cm in
-\fIImage Settings\fP in the print dialogue before printing. I am using an Epson XP\-7100 printer for this
-purpose.
+If you have \fImogrify\fP (ImageMagick) and Inkscape installed, a label will be generated. This label
+can be opened in a tool that supports disc printing (such as GIMP). The image should be ready for
+printing (under \fIImage Settings\fP you should see it is exactly 12 cm at DPI 600).
+.sp
+Many of the steps above can be skipped by passing flags to the script. Currently the script supports
+these options:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+Usage: script.sh [\-h] [\-G] [\-K] [\-k] [\-O] [\-s] [\-S] [\-V]
+All flags default to no.
+  \-h: Show this help message.
+  \-G: Do not open GIMP on completion (if label file exists).
+  \-K: Keep ISO image after burning.
+  \-k: Keep source files after burning.
+  \-O: Only create ISO image.
+  \-s: Skip clean\-up of .directory files.
+  \-S: Skip ejecting tray for blank disc (assume already inserted).
+  \-V: Skip verification of burnt disc.
+.EE
+.UNINDENT
+.UNINDENT
 .SH LABEL GENERATION
 .SS genlabel
 .sp
