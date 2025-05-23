@@ -319,6 +319,7 @@ class DirectorySplitter:
             sha256_filename = f'{iso_file}.sha256sum'
             tree_txt_file = f'{output_dir / orig_vol_id}.tree.txt'
             metadata_filename = f'{output_dir / orig_vol_id}.metadata.json'
+            metadata_tmp_filename = f'{metadata_filename}.tmp'
             log.debug('Total: %s', convert_size_bytes_to_string(self._total))
             pl_file = output_dir / pl_filename
             pl_file.write_text('\n'.join(self._current_set) + '\n', encoding='utf-8')
@@ -350,7 +351,7 @@ make-listing() {{
     if command -v exiftool &> /dev/null; then
         find . -type f -exec exiftool -j {{}} ';' > {quote(metadata_filename)}
         if command -v prettier &> /dev/null; then
-            prettier --print-width 100 {quote(metadata_filename)} > new && mv new {quote(metadata_filename)}
+            prettier --print-width 100 {quote(metadata_filename)} > {quote(metadata_tmp_filename)} && mv {quote(metadata_tmp_filename)} {quote(metadata_filename)}
         fi
     fi
     tree > {quote(tree_txt_file)}
