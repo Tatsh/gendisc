@@ -60,6 +60,8 @@ Options:
   --bd-dl-write-speed INTEGER  BD-R DL write speed.
   --bd-tl-write-speed INTEGER  BD-R TL write speed.
   --bd-xl-write-speed INTEGER  BD-R XL write speed.
+  --preparer TEXT              Preparer string (128 characters).
+  --publisher TEXT             Publisher string (128 characters).
   -h, --help                   Show this message and exit.
 ```
 
