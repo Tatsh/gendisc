@@ -9,6 +9,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed formatting EXIF data JSON file with Prettier.
+
 ## [0.0.6]
 
 ## Added
