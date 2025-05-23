@@ -44,15 +44,23 @@ Usage: gendisc [OPTIONS] PATH
   Make a file listing filling up discs.
 
 Options:
-  --cross-fs                  Allow crossing file systems.
-  -D, --drive FILE            Drive path.
-  -d, --debug                 Enable debug logging.
-  -i, --starting-index INDEX  Index to start with (defaults to 1).  [x>=1]
-  -o, --output-dir DIRECTORY  Output directory. Will be created if it does not
-                              exist.
-  -p, --prefix TEXT           Prefix for volume ID and files.
-  -r, --delete                Unlink instead of sending to trash.
-  -h, --help                  Show this message and exit.
+  --cross-fs                   Allow crossing file systems.
+  -D, --drive FILE             Drive path.
+  -d, --debug                  Enable debug logging.
+  -i, --starting-index INDEX   Index to start with (defaults to 1).  [x>=1]
+  -o, --output-dir DIRECTORY   Output directory. Will be created if it does
+                               not exist.
+  -p, --prefix TEXT            Prefix for volume ID and files.
+  -r, --delete                 Unlink instead of sending to trash.
+  --no-labels                  Do not create labels.
+  --cd-write-speed INTEGER     CD-R write speed.
+  --dvd-write-speed INTEGER    DVD-R write speed.
+  --dvd-dl-write-speed FLOAT   DVD-R DL write speed.
+  --bd-write-speed INTEGER     BD-R write speed.
+  --bd-dl-write-speed INTEGER  BD-R DL write speed.
+  --bd-tl-write-speed INTEGER  BD-R TL write speed.
+  --bd-xl-write-speed INTEGER  BD-R XL write speed.
+  -h, --help                   Show this message and exit.
 ```
 
 The output is a series of shell scripts (1 for each disc) that do the following:
@@ -62,7 +70,7 @@ The output is a series of shell scripts (1 for each disc) that do the following:
 - Save a tree listing for later use (`tree` must be installed).
 - Save a file listing via `find` for later use.
 - Requests to insert a blank disc.
-- Uses `cdrecord` to burn (currently set to burn at 4x speed).
+- Uses `cdrecord` to burn.
 - Ejects and re-inserts the disc.
 - Verifies the disc.
 - Deletes the source files or sends them to the bin.

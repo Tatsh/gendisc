@@ -96,7 +96,7 @@ The output consists of a series of shell scripts (1 for each disc) that perform 
 - Save a directory tree listing (requires ``tree``).
 - Save a file listing using ``find``.
 - Prompt to insert a blank disc. It will tell you the kind of disc to use.
-- Burn the image to disc using ``cdrecord`` (default speed: 4x).
+- Burn the image to disc using ``cdrecord``.
 - Eject and re-insert the disc.
 - Verify the disc.
 - Delete or move the source files to the bin.

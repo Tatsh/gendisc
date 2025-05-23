@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.5] - 2025-05-22
+
+### Changed
+
+- Use longer volume ID on the disc label.
+
 ## [0.0.4] - 2025-05-22
 
 ### Added
@@ -49,4 +55,4 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 First version.
 
-[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.4...master
+[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.5...master

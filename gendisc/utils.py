@@ -487,9 +487,9 @@ fi
             sh_file.chmod(0o755)
             log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))
             if self._has_mogrify:
-                log.debug('Creating label for "%s".', volid)
+                log.debug('Creating label for "%s".', orig_vol_id)
                 l_common_prefix = len(self._prefix_parts[-1])
-                text = f'{volid} || ' + ' | '.join(
+                text = f'{orig_vol_id} || ' + ' | '.join(
                     sorted(
                         path_list_first_component(x[l_common_prefix + 1:])
                         for x in self._current_set if x.strip()))
