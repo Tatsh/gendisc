@@ -257,10 +257,12 @@ class DirectorySplitter:
     def __init__(self,
                  path: os.PathLike[str] | str,
                  prefix: str,
-                 prefix_parts: tuple[str, ...] | None = None,
                  delete_command: str = 'trash',
                  drive: os.PathLike[str] | str = '/dev/sr0',
                  output_dir: os.PathLike[str] | str = '.',
+                 prefix_parts: tuple[str, ...] | None = None,
+                 preparer: str | None = None,
+                 publisher: str | None = None,
                  starting_index: int = 1,
                  write_speeds: WriteSpeeds | None = None,
                  *,
@@ -287,6 +289,8 @@ class DirectorySplitter:
         self._cached_get_dir_size = cache(get_dir_size)
         self._cached_get_file_size = cache(get_file_size)
         self._write_speeds = write_speeds or WriteSpeeds()
+        self._preparer = preparer
+        self._publisher = publisher
 
     def _reset(self) -> None:
         self._target_size = BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED
@@ -322,6 +326,11 @@ class DirectorySplitter:
             disc_type = get_disc_type(self._total)
             speed = self._write_speeds.get_speed(disc_type)
             speed_s = f'{speed:.1f}' if isinstance(speed, float) else str(speed)
+            special_args = []
+            if self._preparer:
+                special_args.append(f'-preparer {quote(self._preparer)}')
+            if self._publisher:
+                special_args.append(f'-publisher {quote(self._publisher)}')
             gimp_script_fu = f"""(define (print-label filename)
   (let* ((image (car (gimp-file-load RUN-INTERACTIVE filename filename))))
   (file-print-gtk #:run-mode RUN-INTERACTIVE #:image image)))
@@ -361,8 +370,8 @@ _sha256sum() {{
 }}
 make-image() {{
     if ! mkisofs -graft-points -volid {quote(volid)} -appid gendisc -sysid LINUX -rational-rock \
-            -no-cache-inodes -udf -full-iso9660-filenames -disable-deep-relocation -iso-level 3 \
-            -path-list {quote(str(pl_file))} -o {quote(iso_file)}; then
+            -no-cache-inodes -udf -full-iso9660-filenames -udf -iso-level 3 \
+            {" ".join(special_args)} -path-list {quote(str(pl_file))} -o {quote(iso_file)}; then
         echo 'mkisofs failed!' >&2
         rm -f {quote(iso_file)}
         return 1
@@ -543,13 +552,17 @@ fi
                 log.debug('Directory %s too large for Blu-ray. Splitting separately.', dir_)
                 suffix = Path(dir_).name
                 DirectorySplitter(dir_,
-                                  f'{self._prefix}-{suffix}', (*self._prefix_parts, suffix),
-                                  self._delete_command,
-                                  self._drive,
-                                  self._output_dir_p,
-                                  self._starting_index,
+                                  f'{self._prefix}-{suffix}',
                                   cross_fs=self._cross_fs,
-                                  labels=self._has_mogrify).split()
+                                  delete_command=self._delete_command,
+                                  drive=self._drive,
+                                  labels=self._has_mogrify,
+                                  output_dir=self._output_dir_p,
+                                  prefix_parts=(*self._prefix_parts, suffix),
+                                  preparer=self._preparer,
+                                  publisher=self._publisher,
+                                  starting_index=self._starting_index,
+                                  write_speeds=self._write_speeds).split()
                 self._reset()
                 continue
             self._total = self._next_total

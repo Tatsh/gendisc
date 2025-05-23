@@ -155,13 +155,17 @@ def test_directory_splitter_split(mocker: MockerFixture, mocker_fs: None) -> Non
     mock_path.reset_mock()
     mock_write_text = (
         mock_path.return_value.__truediv__.return_value.__truediv__.return_value.write_text)
-    splitter = DirectorySplitter('test_path', 'prefix-' * 10)
+    splitter = DirectorySplitter('test_path',
+                                 'prefix-' * 10,
+                                 preparer='preparer',
+                                 publisher='publisher')
     splitter.split()
     assert len(splitter._sets) == 1
     assert len(splitter._sets[0]) == 1
     # Test the prefix is truncated
-    assert ('mkisofs -graft-points -volid prefix-prefix-prefix-prefix-p-01'
-            in mock_write_text.call_args_list[1].args[0])
+    shell = mock_write_text.call_args_list[1].args[0]
+    assert 'mkisofs -graft-points -volid prefix-prefix-prefix-prefix-p-01' in shell
+    assert '-preparer preparer -publisher publisher' in shell
 
 
 def test_directory_splitter_too_large(mocker_fs: None) -> None:

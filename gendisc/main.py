@@ -59,9 +59,13 @@ log = logging.getLogger(__name__)
 @click.option('--bd-dl-write-speed', help='BD-R DL write speed.', type=int, default=6)
 @click.option('--bd-tl-write-speed', help='BD-R TL write speed.', type=int, default=4)
 @click.option('--bd-xl-write-speed', help='BD-R XL write speed.', type=int, default=4)
+@click.option('--preparer', help='Preparer string (128 characters).', type=str)
+@click.option('--publisher', help='Publisher string (128 characters).', type=str)
 def main(path: Path,
          output_dir: Path,
          drive: Path,
+         preparer: str | None = None,
+         publisher: str | None = None,
          prefix: str | None = None,
          starting_index: int = 0,
          cd_write_speed: int = 24,
@@ -86,12 +90,14 @@ def main(path: Path,
     with keep.running():
         DirectorySplitter(path,
                           prefix or path.name,
+                          cross_fs=cross_fs,
                           delete_command='rm -rf' if delete else 'trash',
                           drive=drive,
-                          output_dir=output_dir_p,
-                          starting_index=starting_index,
-                          cross_fs=cross_fs,
                           labels=not no_labels,
+                          output_dir=output_dir_p,
+                          preparer=preparer,
+                          publisher=publisher,
+                          starting_index=starting_index,
                           write_speeds=WriteSpeeds(cd=cd_write_speed,
                                                    dvd=dvd_write_speed,
                                                    dvd_dl=dvd_dl_write_speed,
