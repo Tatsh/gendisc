@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.0.6]
+
+## Added
+
+- Add options to add preparer and publisher values to images
+
 ## [0.0.5] - 2025-05-22
 
 ### Changed
