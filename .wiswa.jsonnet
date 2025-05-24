@@ -3,7 +3,7 @@
   description: 'Generate disk file paths for mkisofs that fit on certain size discs.',
   keywords: ['backup', 'iso', 'media', 'optical'],
   project_name: 'gendisc',
-  version: '0.0.7',
+  version: '0.0.8',
   want_main: true,
   citation+: {
     'date-released': '2025-05-17',
