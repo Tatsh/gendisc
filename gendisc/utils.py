@@ -252,6 +252,11 @@ class WriteSpeeds(NamedTuple):
         raise ValueError(msg)
 
 
+@cache
+def quote_incomplete(s: str) -> str:
+    return quote(f'{s}.__incomplete__')
+
+
 class DirectorySplitter:
     """Split directories into sets for burning to disc."""
     def __init__(self,
@@ -319,7 +324,6 @@ class DirectorySplitter:
             sha256_filename = f'{iso_file}.sha256sum'
             tree_txt_file = f'{output_dir / orig_vol_id}.tree.txt'
             metadata_filename = f'{output_dir / orig_vol_id}.metadata.json'
-            metadata_tmp_filename = f'{metadata_filename}.tmp'
             log.debug('Total: %s', convert_size_bytes_to_string(self._total))
             pl_file = output_dir / pl_filename
             pl_file.write_text('\n'.join(self._current_set) + '\n', encoding='utf-8')
@@ -347,15 +351,18 @@ make-listing() {{
         rev | awk '{{ print $1 }}' | rev | cut -d. -f1)
     location=$(udisksctl mount --no-user-interaction -b "${{loop_dev}}" | rev | awk '{{ print $1 }}' | rev)
     pushd "${{location}}" || exit 1
-    find . -type f > {quote(list_txt_file)}
+    find . -type f > {quote_incomplete(list_txt_file)} &&
+        mv {quote_incomplete(list_txt_file)} {quote(list_txt_file)}
     if command -v exiftool &> /dev/null; then
-        find . -type f -exec exiftool -j {{}} ';' > {quote(metadata_filename)}
+        find . -type f -exec exiftool -j {{}} ';' > {quote_incomplete(metadata_filename)} &&
+            mv {quote_incomplete(metadata_filename)} {quote(metadata_filename)}
         if command -v jq &> /dev/null; then
-            jq -rS --slurp 'map(.[0])' {quote(metadata_filename)} > {quote(metadata_tmp_filename)} &&
-                mv {quote(metadata_tmp_filename)} {quote(metadata_filename)}
+            jq -rS --slurp 'map(.[0])' {quote(metadata_filename)} > {quote_incomplete(metadata_filename)} &&
+                mv {quote_incomplete(metadata_filename)} {quote(metadata_filename)}
         fi
     fi
-    tree > {quote(tree_txt_file)}
+    tree > {quote_incomplete(tree_txt_file)} &&
+        mv {quote_incomplete(tree_txt_file)} {quote(tree_txt_file)}
     popd || exit 1
     udisksctl unmount --no-user-interaction --object-path "block_devices/$(basename "${{loop_dev}}")"
     udisksctl loop-delete --no-user-interaction -b "${{loop_dev}}"
@@ -373,13 +380,22 @@ _sha256sum() {{
 make-image() {{
     if ! mkisofs -graft-points -volid {quote(volid)} -appid gendisc -sysid LINUX -rational-rock \
             -no-cache-inodes -udf -full-iso9660-filenames -udf -iso-level 3 \
-            {" ".join(special_args)} -path-list {quote(str(pl_file))} -o {quote(iso_file)}; then
+            {" ".join(special_args)} -path-list {quote(str(pl_file))} -o {quote_incomplete(iso_file)}; then
         echo 'mkisofs failed!' >&2
         rm -f {quote(iso_file)}
         return 1
     fi
+    mv {quote_incomplete(iso_file)} {quote(iso_file)}
     echo 'Size: {convert_size_bytes_to_string(self._total)} ({self._total:,} bytes)'
-    pv {quote(iso_file)} | _sha256sum > {quote(sha256_filename)}
+    echo 'Calculating SHA256 checksum...' >&2
+    if command -v pv &> /dev/null; then
+        pv {quote(iso_file)} | _sha256sum > {quote_incomplete(sha256_filename)} &&
+            mv {quote_incomplete(sha256_filename)} {quote(sha256_filename)}
+    else
+        echo 'If you had pv installed, you would have had a progress bar here. Please be patient!' >&2
+        _sha256sum {quote(iso_file)} > {quote_incomplete(sha256_filename)} &&
+            mv {quote_incomplete(sha256_filename)} {quote(sha256_filename)}
+    fi
 }}
 cdrecord_found=1
 eject_found=1

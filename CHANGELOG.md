@@ -9,6 +9,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+## [0.0.9] - 2025-05-24
+
+### Changed
+
+- In the script write to files ending in `.__incomplete__` first then move them to the correct name
+  after successful completion.
+
+### Fixed
+
+- Fallback to normal piping when `pv` is not installed.
+
 ## [0.0.8] - 2025-05-23
 
 ### Added
