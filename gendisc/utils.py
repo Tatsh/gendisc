@@ -446,17 +446,17 @@ while getopts ':hGKOPSVks' opt; do
         V) skip_verification=1 ;;
         k) keep_files=1 ;;
         s) skip_cleanup=1 ;;
-        h) echo "Usage: $0 [-h] [-G] [-K] [-k] [-O] [-s] [-S] [-V]"
+        h) echo "Usage: $0 [-h] [-G] [-K] [-k] [-O] [-P] [-s] [-S] [-V]"
            echo 'All flags default to no.'
            echo '  -h: Show this help message.'
            echo '  -G: Do not open GIMP on completion (if label file exists).'
-           echo '  -P: Open GIMP in normal mode instead of batch mode.'
            echo '  -K: Keep ISO image after burning.'
-           echo '  -k: Keep source files after burning.'
            echo '  -O: Only create ISO image.'
+           echo '  -P: Open GIMP in normal mode instead of batch mode.'
            echo '  -S: Skip ejecting tray for blank disc (assume already inserted).'
-           echo '  -s: Skip clean-up of .directory files.'
            echo '  -V: Skip verification of burnt disc.'
+           echo '  -k: Keep source files after burning.'
+           echo '  -s: Skip clean-up of .directory files.'
            exit 0 ;;
         :) echo "Option -$OPTARG requires an argument." >&2 ;;
         ?) echo "Invalid option: -$OPTARG" >&2 ;;

@@ -113,16 +113,17 @@ these options:
 
 .. code-block:: text
 
-   Usage: script.sh [-h] [-G] [-K] [-k] [-O] [-s] [-S] [-V]
+   Usage: script.sh [-h] [-G] [-K] [-k] [-O] [-P] [-s] [-S] [-V]
    All flags default to no.
      -h: Show this help message.
      -G: Do not open GIMP on completion (if label file exists).
      -K: Keep ISO image after burning.
-     -k: Keep source files after burning.
      -O: Only create ISO image.
-     -s: Skip clean-up of .directory files.
+     -P: Open GIMP in normal mode instead of batch mode.
      -S: Skip ejecting tray for blank disc (assume already inserted).
      -V: Skip verification of burnt disc.
+     -k: Keep source files after burning.
+     -s: Skip clean-up of .directory files.
 
 Label generation
 ----------------
