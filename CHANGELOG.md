@@ -87,4 +87,4 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 First version.
 
-[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.8...master
+[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.9...master
