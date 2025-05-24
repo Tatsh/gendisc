@@ -9,7 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
-## [0.0.7]
+## [0.0.8] - 2025-05-23
 
 ### Added
 
@@ -24,7 +24,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Fixed formatting EXIF data JSON file.
 
-## [0.0.6]
+## [0.0.6] - 2025-05-23
 
 ## Added
 
@@ -76,4 +76,4 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 First version.
 
-[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.6...master
+[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.8...master
