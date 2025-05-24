@@ -14,6 +14,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - Do not re-create the listing, metadata, or tree files unnecessarily.
+- Exit on failure of `cdrecord`.
 
 ## [0.0.9] - 2025-05-24
 

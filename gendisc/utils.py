@@ -490,7 +490,7 @@ if ! (( skip_wait_for_disc )); then
     read -r
     delay 120 || sleep 120
 fi
-cdrecord {dev_arg} gracetime=2 -v driveropts=burnfree speed={speed_s} -eject -sao {quote(iso_file)}
+cdrecord {dev_arg} gracetime=2 -v driveropts=burnfree speed={speed_s} -eject -sao {quote(iso_file)} || exit 1
 eject -t
 delay 30 || sleep 30
 if ! ((skip_verification)); then
