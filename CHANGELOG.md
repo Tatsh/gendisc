@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+## [0.0.10] - 2025-05-24
+
+### Changed
+
+- Do not re-create the listing, metadata, or tree files unnecessarily.
+
 ## [0.0.9] - 2025-05-24
 
 ### Changed
@@ -87,4 +93,4 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 First version.
 
-[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.9...master
+[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.10...master

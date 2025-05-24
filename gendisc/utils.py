@@ -351,9 +351,11 @@ make-listing() {{
         rev | awk '{{ print $1 }}' | rev | cut -d. -f1)
     location=$(udisksctl mount --no-user-interaction -b "${{loop_dev}}" | rev | awk '{{ print $1 }}' | rev)
     pushd "${{location}}" || exit 1
-    find . -type f > {quote_incomplete(list_txt_file)} &&
-        mv {quote_incomplete(list_txt_file)} {quote(list_txt_file)}
-    if command -v exiftool &> /dev/null; then
+    if ! [ -f {quote(list_txt_file)} ]; then
+        find . -type f > {quote_incomplete(list_txt_file)} &&
+            mv {quote_incomplete(list_txt_file)} {quote(list_txt_file)}
+    fi
+    if ! [ -f {quote(metadata_filename)} ] && command -v exiftool &> /dev/null; then
         find . -type f -exec exiftool -j {{}} ';' > {quote_incomplete(metadata_filename)} &&
             mv {quote_incomplete(metadata_filename)} {quote(metadata_filename)}
         if command -v jq &> /dev/null; then
@@ -361,8 +363,10 @@ make-listing() {{
                 mv {quote_incomplete(metadata_filename)} {quote(metadata_filename)}
         fi
     fi
-    tree > {quote_incomplete(tree_txt_file)} &&
-        mv {quote_incomplete(tree_txt_file)} {quote(tree_txt_file)}
+    if ! [ -f {quote(tree_txt_file)} ]; then
+        tree > {quote_incomplete(tree_txt_file)} &&
+            mv {quote_incomplete(tree_txt_file)} {quote(tree_txt_file)}
+    fi
     popd || exit 1
     udisksctl unmount --no-user-interaction --object-path "block_devices/$(basename "${{loop_dev}}")"
     udisksctl loop-delete --no-user-interaction -b "${{loop_dev}}"
