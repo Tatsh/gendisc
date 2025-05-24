@@ -9,9 +9,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Added option in script to open GIMP normally instead of directly to the print window.
+
+### Changed
+
+- Use `jq` instead of `prettier` to format JSON files (since `exiftool`'s JSON file is technically
+  "ndjson"). Also convert the ndjson file to normal JSON.
+
 ### Fixed
 
-- Fixed formatting EXIF data JSON file with Prettier.
+- Fixed formatting EXIF data JSON file.
 
 ## [0.0.6]
 

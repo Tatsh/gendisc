@@ -39,7 +39,7 @@ gendisc
 genindex
 genlabel
 getopts
-gkos
+gkops
 globaltoc
 gracetime
 hoverxref
