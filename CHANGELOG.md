@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+## [0.0.12] - 2025-05-25
+
+### Fixed
+
+- Fix label generation when a prefix is specified (again).
+
 ## [0.0.11] - 2025-05-25
 
 ### Changed
@@ -104,4 +110,4 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 First version.
 
-[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.11...master
+[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.12...master

@@ -367,7 +367,9 @@ class DirectorySplitter:
             log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))
             if self._has_mogrify:
                 log.debug('Creating label for "%s".', orig_vol_id)
-                l_common_prefix = len(commonprefix(self._current_set))
+                common_prefix = commonprefix(self._current_set).rstrip('/')
+                log.debug('Common prefix: %s', common_prefix)
+                l_common_prefix = len(common_prefix)
                 text = f'{orig_vol_id} || ' + ' | '.join(
                     sorted(
                         path_list_first_component(x[l_common_prefix + 1:])
