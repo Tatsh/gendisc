@@ -363,12 +363,13 @@ class DirectorySplitter:
             log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))
             if self._has_mogrify:
                 log.debug('Creating label for "%s".', orig_vol_id)
-                common_prefix = commonprefix(self._current_set).rstrip('/')
+                common_prefix = (commonprefix(self._current_set).rstrip('/') if len(
+                    self._current_set) > 1 else self._current_set[0].split('/', 1)[0])
                 log.debug('Common prefix: %s', common_prefix)
-                l_common_prefix = len(common_prefix)
+                l_common_prefix = len(common_prefix) + 1
                 text = f'{orig_vol_id} || ' + ' | '.join(
                     sorted(
-                        path_list_first_component(x[l_common_prefix + 1:])
+                        path_list_first_component(x[l_common_prefix:])
                         for x in self._current_set if x.strip()))
                 write_spiral_text_png(label_file, text)
             self._sets.append(self._current_set)
