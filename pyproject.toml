@@ -19,7 +19,7 @@ keywords = ["backup", "iso", "media", "optical"]
 license = "MIT"
 name = "gendisc"
 readme = "README.md"
-version = "0.0.12"
+version = "0.0.13"
 
 [[project.authors]]
 email = "audvare@gmail.com"

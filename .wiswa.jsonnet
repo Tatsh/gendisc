@@ -3,7 +3,7 @@
   description: 'Generate disk file path lists for mkisofs.',
   keywords: ['backup', 'iso', 'media', 'optical'],
   project_name: 'gendisc',
-  version: '0.0.12',
+  version: '0.0.13',
   want_main: true,
   citation+: {
     'date-released': '2025-05-26',
