@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from functools import cache
 from os import walk
-from os.path import isdir, islink
+from os.path import commonprefix, isdir, islink
 from pathlib import Path
 from typing import Literal, NamedTuple, overload
 import logging
@@ -526,7 +526,7 @@ fi
             log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))
             if self._has_mogrify:
                 log.debug('Creating label for "%s".', orig_vol_id)
-                l_common_prefix = len(self._prefix_parts[-1])
+                l_common_prefix = len(commonprefix(self._current_set))
                 text = f'{orig_vol_id} || ' + ' | '.join(
                     sorted(
                         path_list_first_component(x[l_common_prefix + 1:])

@@ -9,6 +9,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+## [0.0.11] - 2025-05-25
+
+### Fixed
+
+- Fix label generation when a prefix is specified.
+
 ## [0.0.10] - 2025-05-24
 
 ### Changed
