@@ -13,7 +13,7 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Typing :: Typed",
 ]
-description = "Generate disk file paths for mkisofs that fit on certain size discs."
+description = "Generate disk file path lists for mkisofs."
 dynamic = ["dependencies", "requires-python"]
 keywords = ["backup", "iso", "media", "optical"]
 license = "MIT"

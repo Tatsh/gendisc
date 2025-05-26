@@ -330,36 +330,34 @@ class DirectorySplitter:
             label_file = output_dir / f'{fn_prefix}.png'
             disc_type = get_disc_type(self._total)
             speed = self._write_speeds.get_speed(disc_type)
-            speed_s = f'{speed:.1f}' if isinstance(speed, float) else str(speed)
             special_args = []
             if self._preparer:
                 special_args.append(f'-preparer {quote(self._preparer)}')
             if self._publisher:
                 special_args.append(f'-publisher {quote(self._publisher)}')
-            template = _jinja_env.get_template('print-label.scm.j2')
-            gimp_script_fu = template.render(
-                label_file=str(label_file).replace('"', r'\"')).replace('\n', '')
             delete_command_args = shlex.join(y.rsplit('=', 1)[-1] for y in self._current_set)
-            delete_command = (f'{self._delete_command} {delete_command_args}'
-                              if self._delete_command else '')
             sh_file = (output_dir / sh_filename)
-            template = _jinja_env.get_template('process.sh.j2')
-            sh_file.write_text(template.render(delete_command=delete_command,
-                                               disc_type=disc_type,
-                                               drive=quote(str(self._drive)),
-                                               gimp_script_fu=quote(gimp_script_fu),
-                                               iso_file=quote(iso_file),
-                                               label_file=quote(str(label_file)),
-                                               list_txt_file=quote(list_txt_file),
-                                               metadata_filename=quote(metadata_filename),
-                                               pl_file=quote(str(pl_file)),
-                                               sha256_file=quote(sha256_filename),
-                                               size_str=convert_size_bytes_to_string(self._total),
-                                               size_bytes_formatted=f'{self._total:,}',
-                                               special_args=' '.join(special_args),
-                                               speed_s=quote(speed_s),
-                                               tree_txt_file=quote(tree_txt_file),
-                                               volid=quote(volid)) + '\n',
+            sh_file.write_text(_jinja_env.get_template('process.sh.j2').render(
+                delete_command=(f'{self._delete_command} {delete_command_args}'
+                                if self._delete_command else ''),
+                disc_type=disc_type,
+                drive=quote(str(self._drive)),
+                gimp_script_fu=quote(''.join(
+                    re.sub(r'^\s+', '', x)
+                    for x in _jinja_env.get_template('print-label.scm.j2').render(
+                        label_file=str(label_file).replace('"', r'\"')).splitlines())),
+                iso_file=quote(iso_file),
+                label_file=quote(str(label_file)),
+                list_txt_file=quote(list_txt_file),
+                metadata_filename=quote(metadata_filename),
+                pl_file=quote(str(pl_file)),
+                sha256_file=quote(sha256_filename),
+                size_str=convert_size_bytes_to_string(self._total),
+                size_bytes_formatted=f'{self._total:,}',
+                special_args=' '.join(special_args),
+                speed_s=quote(f'{speed:.1f}' if isinstance(speed, float) else str(speed)),
+                tree_txt_file=quote(tree_txt_file),
+                volid=quote(volid)) + '\n',
                                encoding='utf-8')
             sh_file.chmod(0o755)
             log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))

@@ -1,12 +1,12 @@
 (import 'defaults.libjsonnet') + {
   // Project-specific
-  description: 'Generate disk file paths for mkisofs that fit on certain size discs.',
+  description: 'Generate disk file path lists for mkisofs.',
   keywords: ['backup', 'iso', 'media', 'optical'],
   project_name: 'gendisc',
   version: '0.0.12',
   want_main: true,
   citation+: {
-    'date-released': '2025-05-17',
+    'date-released': '2025-05-25',
   },
   pyproject+: {
     project+: {

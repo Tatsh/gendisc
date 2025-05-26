@@ -75,9 +75,10 @@ gendisc
       :target: https://hostux.social/@Tatsh
       :alt: Mastodon Follow
 
-Generate scripts to create disc ISOs from a directory structure (mostly) maximising use of the available
-space on each disc. This is useful for creating backups of large amounts of data that do not fit on
-a single disc. Directories larger than a disc are split into multiple discs.
+This tool generates scripts to create disc ISOs from a directory structure maximising use of the
+available space on each disc. This is useful for creating backups of large amounts of data that do
+not fit on a single disc. Directories whose capacity is larger than a single disc are split into
+multiple discs.
 
 Commands
 --------
