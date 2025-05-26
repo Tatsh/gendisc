@@ -19,6 +19,7 @@ from fsutil import get_file_size
 from tqdm import tqdm
 from typing_extensions import override
 import fsutil
+import jinja2
 
 from .constants import (
     BLURAY_DUAL_LAYER_SIZE_BYTES_ADJUSTED,
@@ -34,6 +35,11 @@ from .genlabel import write_spiral_text_png
 __all__ = ('DirectorySplitter', 'WriteSpeeds', 'get_disc_type')
 
 log = logging.getLogger(__name__)
+_jinja_env = jinja2.Environment(autoescape=jinja2.select_autoescape(),
+                                loader=jinja2.PackageLoader(__package__),
+                                lstrip_blocks=True,
+                                trim_blocks=True,
+                                undefined=jinja2.StrictUndefined)
 
 
 def setup_logging(*,
@@ -252,11 +258,6 @@ class WriteSpeeds(NamedTuple):
         raise ValueError(msg)
 
 
-@cache
-def quote_incomplete(s: str) -> str:
-    return quote(f'{s}.__incomplete__')
-
-
 class DirectorySplitter:
     """Split directories into sets for burning to disc."""
     def __init__(self,
@@ -309,7 +310,7 @@ class DirectorySplitter:
 
     def _append_set(self) -> None:
         if self._current_set:
-            dev_arg = quote(f'dev={self._drive}')
+            quote(f'dev={self._drive}')
             index = len(self._sets) + self._starting_index
             fn_prefix = f'{self._prefix}-{index:03d}'
             orig_vol_id = volid = f'{self._prefix}-{index:02d}'
@@ -344,184 +345,24 @@ class DirectorySplitter:
                 f'{self._delete_command} {shlex.join(y.rsplit("=", 1)[-1] for y in self._current_set)}'  # noqa: E501
                 if self._delete_command else '')
             sh_file = (output_dir / sh_filename)
-            sh_file.write_text(
-                rf"""#!/usr/bin/env bash
-make-listing() {{
-    loop_dev=$(udisksctl loop-setup --no-user-interaction -r -f {quote(iso_file)} 2>&1 |
-        rev | awk '{{ print $1 }}' | rev | cut -d. -f1)
-    location=$(udisksctl mount --no-user-interaction -b "${{loop_dev}}" | rev | awk '{{ print $1 }}' | rev)
-    pushd "${{location}}" || exit 1
-    if ! [ -f {quote(list_txt_file)} ]; then
-        find . -type f > {quote_incomplete(list_txt_file)} &&
-            mv {quote_incomplete(list_txt_file)} {quote(list_txt_file)}
-    fi
-    if ! [ -f {quote(metadata_filename)} ] && command -v exiftool &> /dev/null; then
-        find . -type f -exec exiftool -j {{}} ';' > {quote_incomplete(metadata_filename)} &&
-            mv {quote_incomplete(metadata_filename)} {quote(metadata_filename)}
-        if command -v jq &> /dev/null; then
-            jq -rS --slurp 'map(.[0])' {quote(metadata_filename)} > {quote_incomplete(metadata_filename)} &&
-                mv {quote_incomplete(metadata_filename)} {quote(metadata_filename)}
-        fi
-    fi
-    if ! [ -f {quote(tree_txt_file)} ]; then
-        tree > {quote_incomplete(tree_txt_file)} &&
-            mv {quote_incomplete(tree_txt_file)} {quote(tree_txt_file)}
-    fi
-    popd || exit 1
-    udisksctl unmount --no-user-interaction --object-path "block_devices/$(basename "${{loop_dev}}")"
-    udisksctl loop-delete --no-user-interaction -b "${{loop_dev}}"
-}}
-_sha256sum() {{
-    if command -v sha256sum &>/dev/null; then
-        sha256sum "$@"
-    elif command -v shasum &>/dev/null; then
-        shasum -a 256 "$@"
-    else
-        echo 'Command to calculate SHA256 checksum not found!' >&2
-        return 1
-    fi
-}}
-make-image() {{
-    if ! mkisofs -graft-points -volid {quote(volid)} -appid gendisc -sysid LINUX -rational-rock \
-            -no-cache-inodes -udf -full-iso9660-filenames -udf -iso-level 3 \
-            {" ".join(special_args)} -path-list {quote(str(pl_file))} -o {quote_incomplete(iso_file)}; then
-        echo 'mkisofs failed!' >&2
-        rm -f {quote(iso_file)}
-        return 1
-    fi
-    mv {quote_incomplete(iso_file)} {quote(iso_file)}
-    echo 'Size: {convert_size_bytes_to_string(self._total)} ({self._total:,} bytes)'
-    echo 'Calculating SHA256 checksum...' >&2
-    if command -v pv &> /dev/null; then
-        pv {quote(iso_file)} | _sha256sum > {quote_incomplete(sha256_filename)} &&
-            mv {quote_incomplete(sha256_filename)} {quote(sha256_filename)}
-    else
-        echo 'If you had pv installed, you would have had a progress bar here. Please be patient!' >&2
-        _sha256sum {quote(iso_file)} > {quote_incomplete(sha256_filename)} &&
-            mv {quote_incomplete(sha256_filename)} {quote(sha256_filename)}
-    fi
-}}
-cdrecord_found=1
-eject_found=1
-mkisofs_found=1
-sha256sum_found=1
-if ! _sha256sum /dev/null &> /dev/null; then
-    sha256sum_found=0
-fi
-if ! command -v mkisofs &> /dev/null; then
-    mkisofs_found=0
-fi
-if ! command -v cdrecord &> /dev/null; then
-    cdrecord_found=0
-fi
-if ! command -v eject &> /dev/null; then
-    eject_found=0
-fi
-found_str() {{
-    if (( $1 )); then
-        echo 'Found    '
-    else
-        echo 'Not found'
-    fi
-}}
-if ! ((mkisofs_found)) || ! ((cdrecord_found)) || ! ((sha256sum_found)) || ! ((eject_found)); then
-    echo 'Missing required commands.' >&2
-    echo "cdrecord:            $(found_str "$cdrecord_found") (cdrtools)" >&2
-    echo "mkisofs:             $(found_str "$mkisofs_found") (cdrtools)" >&2
-    echo "eject:               $(found_str "$eject_found") (util-linux)" >&2
-    echo "sha256sum or shasum: $(found_str "$sha256sum_found") (coreutils or Perl)" >&2
-    exit 1
-fi
-keep_files=0
-keep_iso=0
-only_iso=0
-open_gimp=1
-open_gimp_normal=0
-skip_cleanup=0
-skip_verification=0
-skip_wait_for_disc=0
-while getopts ':hGKOPSVks' opt; do
-    case $opt in
-        G) open_gimp=0 ;;
-        K) keep_iso=1 ;;
-        O) only_iso=1 ;;
-        P) open_gimp_normal=1 ;;
-        S) skip_wait_for_disc=1 ;;
-        V) skip_verification=1 ;;
-        k) keep_files=1 ;;
-        s) skip_cleanup=1 ;;
-        h) echo "Usage: $0 [-h] [-G] [-K] [-k] [-O] [-P] [-s] [-S] [-V]"
-           echo 'All flags default to no.'
-           echo '  -h: Show this help message.'
-           echo '  -G: Do not open GIMP on completion (if label file exists).'
-           echo '  -K: Keep ISO image after burning.'
-           echo '  -O: Only create ISO image.'
-           echo '  -P: Open GIMP in normal mode instead of batch mode.'
-           echo '  -S: Skip ejecting tray for blank disc (assume already inserted).'
-           echo '  -V: Skip verification of burnt disc.'
-           echo '  -k: Keep source files after burning.'
-           echo '  -s: Skip clean-up of .directory files.'
-           exit 0 ;;
-        :) echo "Option -$OPTARG requires an argument." >&2 ;;
-        ?) echo "Invalid option: -$OPTARG" >&2 ;;
-    esac
-done
-if ! (( skip_cleanup )); then
-    echo 'Deleting .directory files.'
-    find {quote(str(self._path))} -type f -name .directory -delete
-fi
-if [ -f {quote(iso_file)} ] && [ -f {quote(sha256_filename)} ]; then
-    echo 'Re-create ISO image? If you answer n you must be sure the image was created successfully!'
-    read -r -p 'y/n: ' answer
-    if [[ "${{answer,,}}" == 'y' ]]; then
-        make-image || exit 1
-    fi
-else
-    make-image || exit 1
-fi
-make-listing || exit 1
-if (( only_iso )); then
-    echo 'Only creating ISO image.'
-    exit
-fi
-if ! (( skip_wait_for_disc )); then
-    eject
-    echo 'Insert a blank disc ({disc_type} or higher) and press return.'
-    read -r
-    delay 120 || sleep 120
-fi
-cdrecord {dev_arg} gracetime=2 -v driveropts=burnfree speed={speed_s} -eject -sao {quote(iso_file)} || exit 1
-eject -t
-delay 30 || sleep 30
-if ! ((skip_verification)); then
-    this_sum=$(pv {quote(str(self._drive))} | _sha256sum)
-    expected_sum=$(<{quote(sha256_filename)})
-    if [[ "${{this_sum}}" != "${{expected_sum}}" ]]; then
-        echo 'Burnt disc is invalid!'
-        exit 1
-    fi
-fi
-if ! ((keep_iso)); then
-    rm {quote(iso_file)}
-fi
-if ! ((keep_files)); then
-    echo 'Delaying 30 seconds before deleting source files.'
-    delay 30 || sleep 30
-    {delete_command}
-fi
-echo 'OK.'
-eject
-echo 'Move disc to printer.'
-if ((open_gimp)) && command -v gimp &> /dev/null && [ -f {quote(str(label_file))} ]; then
-    echo 'Opening GIMP.'
-    if ((open_gimp_normal)); then
-        gimp {quote(str(label_file))}
-    else
-        gimp -ns --batch-interpreter=plug-in-script-fu-eval -b {quote(gimp_script_fu)}
-    fi
-fi
-""",  # noqa: E501
-                encoding='utf-8')
+            template = _jinja_env.get_template('process.sh.j2')
+            sh_file.write_text(template.render(delete_command=delete_command,
+                                               disc_type=disc_type,
+                                               drive=quote(str(self._drive)),
+                                               gimp_script_fu=quote(gimp_script_fu),
+                                               iso_file=quote(iso_file),
+                                               label_file=quote(str(label_file)),
+                                               list_txt_file=quote(list_txt_file),
+                                               metadata_filename=quote(metadata_filename),
+                                               pl_file=quote(str(pl_file)),
+                                               sha256_file=quote(sha256_filename),
+                                               size_str=convert_size_bytes_to_string(self._total),
+                                               size_bytes_formatted=f'{self._total:,}',
+                                               special_args=' '.join(special_args),
+                                               speed_s=quote(speed_s),
+                                               tree_txt_file=quote(tree_txt_file),
+                                               volid=quote(volid)) + '\n',
+                               encoding='utf-8')
             sh_file.chmod(0o755)
             log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))
             if self._has_mogrify:

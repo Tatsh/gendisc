@@ -17,6 +17,7 @@
     tool+: {
       poetry+: {
         dependencies+: {
+          jinja2: '^3.1.6',
           'python-fsutil': '^0.15.0',
           tqdm: '^4.67.1',
           wakepy: '^0.10.1',
@@ -28,6 +29,13 @@
             },
           },
         },
+      },
+    },
+  },
+  vscode+: {
+    settings+: {
+      '[jinja-shell]': {
+        'editor.tabSize': 4,
       },
     },
   },

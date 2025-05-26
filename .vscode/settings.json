@@ -1,4 +1,7 @@
 {
+  "[jinja-shell]": {
+    "editor.tabSize": 4
+  },
   "[python]": {
     "editor.defaultFormatter": "eeyore.yapf",
     "editor.formatOnSaveMode": "file",

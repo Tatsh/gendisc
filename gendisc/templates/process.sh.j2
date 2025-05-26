@@ -1,0 +1,216 @@
+#!/usr/bin/env bash
+DRIVE={{ drive }}
+GIMP_SCRIPT_FU={{ gimp_script_fu }}
+ISO_FILENAME={{ iso_file }}
+LABEL_FILENAME={{ label_file }}
+LIST_TXT_FILENAME={{ list_txt_file }}
+METADATA_FILENAME={{ metadata_filename }}
+PATH_LIST_FILENAME={{ pl_file }}
+SHA256_FILENAME={{ sha256_file }}
+SPEED={{ speed_s }}
+TREE_TXT_FILENAME={{ tree_txt_file }}
+VOLID={{ volid }}
+make-listing() {
+    if [ -f "${LIST_TXT_FILENAME}" ] && [ -f "${METADATA_FILENAME}" ] && [ -f "${TREE_TXT_FILENAME}" ]; then
+        echo 'Listing files already exist. Skipping...'
+        return
+    fi
+    local -r loop_dev=$(udisksctl loop-setup --no-user-interaction -r -f "${ISO_FILENAME}" 2>&1 |
+        rev | awk '{ print $1 }' | rev | cut -d. -f1)
+    local -r location=$(udisksctl mount --no-user-interaction -b "${loop_dev}" | rev | awk '{ print $1 }' | rev)
+    pushd "${location}" || exit 1
+    if ! [ -f "${LIST_TXT_FILENAME}" ]; then
+        find . -type f > "${LIST_TXT_FILENAME}.__incomplete__" &&
+            mv "${LIST_TXT_FILENAME}.__incomplete__" "${LIST_TXT_FILENAME}"
+    fi
+    if ! [ -f ${METADATA_FILENAME} ] && command -v exiftool &> /dev/null; then
+        find . -type f -exec exiftool -j {} ';' > "${METADATA_FILENAME}.__incomplete__" &&
+            mv "${METADATA_FILENAME}.__incomplete__" ${METADATA_FILENAME}
+        if command -v jq &> /dev/null; then
+            jq -rS --slurp 'map(.[0])' ${METADATA_FILENAME} > "${METADATA_FILENAME}.__incomplete__" &&
+                mv "${METADATA_FILENAME}.__incomplete__" ${METADATA_FILENAME}
+        fi
+    fi
+    if ! [ -f "${TREE_TXT_FILENAME}" ]; then
+        tree > "${TREE_TXT_FILENAME}.__incomplete__" &&
+            mv "${TREE_TXT_FILENAME}.__incomplete__" "${TREE_TXT_FILENAME}"
+    fi
+    popd || exit 1
+    udisksctl unmount --no-user-interaction --object-path "block_devices/$(basename "${loop_dev}")"
+    udisksctl loop-delete --no-user-interaction -b "${loop_dev}"
+}
+_sha256sum() {
+    if command -v sha256sum &> /dev/null; then
+        sha256sum "$@"
+    elif command -v shasum &> /dev/null; then
+        shasum -a 256 "$@"
+    else
+        echo 'Command to calculate SHA256 checksum not found!' >&2
+        return 1
+    fi
+}
+make-image() {
+    if [ -f "${ISO_FILENAME}" ]; then
+        return
+    fi
+    if ! mkisofs -graft-points -volid "${VOLID}" -appid gendisc -sysid LINUX -rational-rock \
+        -no-cache-inodes -udf -full-iso9660-filenames -udf -iso-level 3 \
+        {{ special_args }} -path-list "${PATH_LIST_FILENAME}" -o "${ISO_FILENAME}.__incomplete__"; then
+        echo 'mkisofs failed!' >&2
+        rm -f "${ISO_FILENAME}"
+        return 1
+    fi
+    mv "${ISO_FILENAME}.__incomplete__" "${ISO_FILENAME}"
+    echo 'Size: {{ size_str }} ({{ size_bytes_formatted }} bytes)'
+    echo 'Calculating SHA256 checksum...' >&2
+    if command -v pv &> /dev/null; then
+        pv "${ISO_FILENAME}" | _sha256sum > "${SHA256_FILENAME}.__incomplete__" &&
+            mv "${SHA256_FILENAME}.__incomplete__" "${SHA256_FILENAME}"
+    else
+        echo 'If you had pv installed, you would have had a progress bar here. Please be patient!' >&2
+        _sha256sum "${ISO_FILENAME}" > "${SHA256_FILENAME}.__incomplete__" &&
+            mv "${SHA256_FILENAME}.__incomplete__" "${SHA256_FILENAME}"
+    fi
+}
+found-str() {
+    if (($1)); then
+        echo 'Found    '
+    else
+        echo 'Not found'
+    fi
+}
+check-requirements() {
+    local cdrecord_found
+    local eject_found
+    local mkisofs_found
+    local sha256sum_found
+    cdrecord_found=1
+    eject_found=1
+    mkisofs_found=1
+    sha256sum_found=1
+    if ! _sha256sum /dev/null &> /dev/null; then
+        sha256sum_found=0
+    fi
+    if ! command -v mkisofs &> /dev/null; then
+        mkisofs_found=0
+    fi
+    if ! command -v cdrecord &> /dev/null; then
+        cdrecord_found=0
+    fi
+    if ! command -v eject &> /dev/null; then
+        eject_found=0
+    fi
+    if ! ((mkisofs_found)) || ! ((cdrecord_found)) || ! ((sha256sum_found)) || ! ((eject_found)); then
+        echo 'Missing required commands.' >&2
+        echo "cdrecord:            $(found-str "$cdrecord_found") (cdrtools)" >&2
+        echo "mkisofs:             $(found-str "$mkisofs_found") (cdrtools)" >&2
+        echo "eject:               $(found-str "$eject_found") (util-linux)" >&2
+        echo "sha256sum or shasum: $(found-str "$sha256sum_found") (coreutils or Perl)" >&2
+        return 1
+    fi
+}
+cleanup() {
+    echo 'Deleting .directory files.'
+    find "${ROOT_PATH}" -type f -name .directory -delete
+}
+open-gimp() {
+    if command -v gimp &> /dev/null && [ -f "${LABEL_FILENAME}" ]; then
+        echo 'Move disc to printer.'
+        echo 'Opening GIMP.' >&2
+        if ((open_gimp_normal)); then
+            gimp "${LABEL_FILENAME}"
+        else
+            gimp -ns --batch-interpreter=plug-in-script-fu-eval -b "${GIMP_SCRIPT_FU}"
+        fi
+    fi
+}
+verify-disc() {
+    eject -t
+    delay 30 || sleep 30
+    local -r this_sum=$(pv "${DRIVE}" | _sha256sum)
+    local -r expected_sum=$(< "${SHA256_FILENAME}")
+    if [[ "${this_sum}" != "${expected_sum}" ]]; then
+        echo 'Burnt disc is invalid!'
+        return 1
+    fi
+    echo 'Verification successful.'
+    eject
+}
+wait-for-disc() {
+    eject
+    echo 'Insert a blank disc ({{ disc_type }} or higher) and press return.'
+    read -r
+    delay 120 || sleep 120
+}
+delete-source-files() {
+    echo 'Delaying 30 seconds before deleting source files.'
+    delay 30 || sleep 30
+    {{ delete_command }}
+}
+check-requirements || exit 1
+keep_files=0
+keep_iso=0
+only_iso=0
+open_gimp=1
+open_gimp_normal=0
+skip_cleanup=0
+skip_verification=0
+skip_wait_for_disc=0
+while getopts ':hGKOPSVks' opt; do
+    case $opt in
+        G) open_gimp=0 ;;
+        K) keep_iso=1 ;;
+        O) only_iso=1 ;;
+        P) open_gimp_normal=1 ;;
+        S) skip_wait_for_disc=1 ;;
+        V) skip_verification=1 ;;
+        k) keep_files=1 ;;
+        s) skip_cleanup=1 ;;
+        h)
+            echo "Usage: $0 [-h] [-G] [-K] [-k] [-O] [-P] [-s] [-S] [-V]"
+            echo 'All flags default to no.'
+            echo '  -h: Show this help message.'
+            echo '  -G: Do not open GIMP on completion (if label file exists).'
+            echo '  -K: Keep ISO image after burning.'
+            echo '  -O: Only create ISO image.'
+            echo '  -P: Open GIMP in normal mode instead of batch mode.'
+            echo '  -S: Skip ejecting tray for blank disc (assume already inserted).'
+            echo '  -V: Skip verification of burnt disc.'
+            echo '  -k: Keep source files after burning.'
+            echo '  -s: Skip clean-up of .directory files.'
+            exit 0
+            ;;
+        :) echo "Option -$OPTARG requires an argument." >&2 ;;
+        ?) echo "Invalid option: -$OPTARG" >&2 ;;
+    esac
+done
+if ! ((skip_cleanup)); then
+    cleanup || exit 1
+fi
+make-image || exit 1
+make-listing || exit 1
+if ((only_iso)); then
+    echo 'Only creating ISO image.'
+    exit
+fi
+if ! ((skip_wait_for_disc)); then
+    wait-for-disc || exit 1
+fi
+cdrecord "dev=${DRIVE}" gracetime=2 -v driveropts=burnfree "speed=${SPEED}" -eject -sao \
+    "${ISO_FILENAME}" || exit 1
+if ! ((skip_verification)); then
+    verify-disc || exit 1
+fi
+if ! ((keep_iso)); then
+    rm "${ISO_FILENAME}"
+else
+    echo 'Keeping ISO image.'
+fi
+if ! ((keep_files)); then
+    delete-source-files || exit 1
+else
+    echo 'Keeping source files.'
+fi
+if ((open_gimp)); then
+    open-gimp
+fi

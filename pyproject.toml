@@ -4,7 +4,7 @@ requires = ["poetry-core"]
 
 [project]
 classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.10",
@@ -84,6 +84,7 @@ include = ["man", { format = "sdist", path = "tests" }]
 [tool.poetry.dependencies]
 click = "^8.2.0"
 colorlog = "^6.9.0"
+jinja2 = "^3.1.6"
 python = ">=3.10,<3.14"
 python-fsutil = "^0.15.0"
 tqdm = "^4.67.1"

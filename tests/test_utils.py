@@ -164,7 +164,7 @@ def test_directory_splitter_split(mocker: MockerFixture, mocker_fs: None) -> Non
     assert len(splitter._sets[0]) == 1
     # Test the prefix is truncated
     shell = mock_write_text.call_args_list[1].args[0]
-    assert 'mkisofs -graft-points -volid prefix-prefix-prefix-prefix-p-01' in shell
+    assert 'VOLID=prefix-prefix-prefix-prefix-p-01' in shell
     assert '-preparer preparer -publisher publisher' in shell
 
 
