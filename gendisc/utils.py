@@ -310,7 +310,6 @@ class DirectorySplitter:
 
     def _append_set(self) -> None:
         if self._current_set:
-            quote(f'dev={self._drive}')
             index = len(self._sets) + self._starting_index
             fn_prefix = f'{self._prefix}-{index:03d}'
             orig_vol_id = volid = f'{self._prefix}-{index:02d}'
@@ -337,13 +336,12 @@ class DirectorySplitter:
                 special_args.append(f'-preparer {quote(self._preparer)}')
             if self._publisher:
                 special_args.append(f'-publisher {quote(self._publisher)}')
-            gimp_script_fu = f"""(define (print-label filename)
-  (let* ((image (car (gimp-file-load RUN-INTERACTIVE filename filename))))
-  (file-print-gtk #:run-mode RUN-INTERACTIVE #:image image)))
-(print-label "{label_file}")""".replace('\n', '')
-            delete_command = (
-                f'{self._delete_command} {shlex.join(y.rsplit("=", 1)[-1] for y in self._current_set)}'  # noqa: E501
-                if self._delete_command else '')
+            template = _jinja_env.get_template('print-label.scm.j2')
+            gimp_script_fu = template.render(
+                label_file=str(label_file).replace('"', r'\"')).replace('\n', '')
+            delete_command_args = shlex.join(y.rsplit('=', 1)[-1] for y in self._current_set)
+            delete_command = (f'{self._delete_command} {delete_command_args}'
+                              if self._delete_command else '')
             sh_file = (output_dir / sh_filename)
             template = _jinja_env.get_template('process.sh.j2')
             sh_file.write_text(template.render(delete_command=delete_command,
@@ -382,7 +380,7 @@ class DirectorySplitter:
         cmd = ('find', str(Path(self._path).resolve(strict=True)), '-maxdepth', '1', '(', '-name',
                '.Trash-*', '-o', '-name', 'Trash', '-o', '-name', '.Trash', '-o', '-name',
                '.directory', ')', '-prune', '-o', '-print')
-        log.debug('Running %s', ' '.join(quote(x) for x in cmd))
+        log.debug('Running %s', shlex.join(cmd))
         for dir_ in sorted(sorted(
                 sp.run(cmd, check=True, text=True, capture_output=True).stdout.splitlines()[1:]),
                            key=lambda x: not isdir(x)):  # noqa: PTH112

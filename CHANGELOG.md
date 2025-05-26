@@ -9,6 +9,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+### Changed
+
+- Use Jinja to render the GIMP script.
+
 ## [0.0.12] - 2025-05-25
 
 ### Fixed
