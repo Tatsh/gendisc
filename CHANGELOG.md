@@ -9,9 +9,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+## [0.0.13] - 2025-05-26
+
 ### Changed
 
 - Use Jinja to render the GIMP script.
+
+### Fixed
+
+- Fix prefix removal on label when only 1 path is in the path list
 
 ## [0.0.12] - 2025-05-25
 
@@ -114,4 +120,4 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 First version.
 
-[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.12...master
+[unreleased]: https://github.com/Tatsh/gendisc/-/compare/v0.0.13...master
