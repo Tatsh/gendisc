@@ -355,7 +355,7 @@ class DirectorySplitter:
                 size_str=convert_size_bytes_to_string(self._total),
                 size_bytes_formatted=f'{self._total:,}',
                 special_args=' '.join(special_args),
-                speed_s=quote(f'{speed:.1f}' if isinstance(speed, float) else str(speed)),
+                speed=quote(f'{speed:.1f}' if isinstance(speed, float) else str(speed)),
                 tree_txt_file=quote(tree_txt_file),
                 volid=quote(volid)) + '\n',
                                encoding='utf-8')
@@ -363,7 +363,7 @@ class DirectorySplitter:
             log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))
             if self._has_mogrify:
                 log.debug('Creating label for "%s".', orig_vol_id)
-                common_prefix = (commonprefix(self._current_set).rstrip('/') if len(
+                common_prefix = (commonprefix(self._current_set).split('/', 1)[0] if len(
                     self._current_set) > 1 else self._current_set[0].split('/', 1)[0])
                 log.debug('Common prefix: %s', common_prefix)
                 l_common_prefix = len(common_prefix) + 1
