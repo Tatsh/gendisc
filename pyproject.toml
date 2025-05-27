@@ -58,6 +58,8 @@ branch = true
 omit = ["conftest.py", "tests.py", "tests/test_*.py", "__main__.py"]
 
 [tool.djlint]
+format_attribute_template_tags = true
+line_break_after_multiline_tag = false
 max_line_length = 100
 no_line_after_yaml = true
 preserve_blank_lines = true

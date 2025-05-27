@@ -9,6 +9,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+## [0.0.14] - 2025-05-26
+
+### Changed
+
+- Switch to Jinja for rendering the SVG.
+
+### Fixed
+
+- Label: fix prefix removal to only count paths towards the prefix (everything before the first `/`).
+
 ## [0.0.13] - 2025-05-26
 
 ### Changed

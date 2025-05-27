@@ -10,11 +10,12 @@ from typing import (
     SupportsIndex,
     TypeAlias,
 )
-from xml.sax.saxutils import escape
 import logging
 import math
 import shutil
 import subprocess as sp
+
+import jinja2
 
 if TYPE_CHECKING:
     import os
@@ -23,6 +24,11 @@ __all__ = ('MogrifyNotFound', 'Point', 'create_spiral_path', 'create_spiral_text
            'write_spiral_text_png', 'write_spiral_text_svg')
 
 log = logging.getLogger(__name__)
+_jinja_env = jinja2.Environment(autoescape=jinja2.select_autoescape(),
+                                loader=jinja2.PackageLoader(__package__),
+                                lstrip_blocks=True,
+                                trim_blocks=True,
+                                undefined=jinja2.StrictUndefined)
 
 
 @dataclass
@@ -223,27 +229,17 @@ def create_spiral_text_svg(text: str,
     str
         The SVG string for the spiral.
     """
-    text = escape(text)
-    center = center or Point(width, width)
     height = height or width
     view_box_s = ' '.join((str(x) for x in view_box) if view_box else ('0', '0', str(width * 2),
                                                                        str(height * 2)))
-    path_d = create_spiral_path(center, start_radius, space_per_loop, start_theta, end_theta,
-                                theta_step)
-    return f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="{view_box_s}">
-  <style>
-    .small {{
-      font: {font_size}px sans-serif;
-    }}
-  </style>
-  <path id="spiral" d="{path_d}" fill="none" stroke="black" stroke-width="0" />
-  <text>
-    <textPath href="#spiral" class="small">
-    {text}
-    </textPath>
-  </text>
-</svg>""".strip()
+    path_d = create_spiral_path(center or Point(width, width), start_radius, space_per_loop,
+                                start_theta, end_theta, theta_step)
+    return _jinja_env.get_template('label.svg.j2').render(font_size=font_size,
+                                                          height=height,
+                                                          path_d=path_d,
+                                                          text=text,
+                                                          view_box=view_box_s,
+                                                          width=width).strip()
 
 
 def write_spiral_text_svg(filename: str | os.PathLike[str],

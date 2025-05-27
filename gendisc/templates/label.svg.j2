@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     height="{{ height }}"
+     viewBox="{{ view_box }}"
+     width="{{ width }}">
+    <style>
+    .small {
+      font: {{ font_size }}px sans-serif;
+    }
+    </style>
+    <path id="spiral"
+          d="{{ path_d }}"
+          fill="none"
+          stroke="black"
+          stroke-width="0" />
+    <text>
+        <textPath class="small" href="#spiral">{{ text | escape }}</textPath>
+    </text>
+</svg>
