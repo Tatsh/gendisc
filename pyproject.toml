@@ -84,24 +84,24 @@ warn_unreachable = true
 include = ["man", { format = "sdist", path = "tests" }]
 
 [tool.poetry.dependencies]
-click = "^8.2.0"
+click = "^8.2.1"
 colorlog = "^6.9.0"
 jinja2 = "^3.1.6"
 python = ">=3.10,<3.14"
 python-fsutil = "^0.15.0"
 tqdm = "^4.67.1"
-typing-extensions = "^4.13.2"
-wakepy = "^0.10.1"
+typing-extensions = "^4.14.1"
+wakepy = "^0.10.2.post1"
 
 [tool.poetry.group.dev]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-commitizen = "^4.7.0"
+commitizen = "^4.8.3"
 djlint = "^1.36.4"
-mypy = ">=1.12,<1.16"
-ruff = "^0.11.9"
-types-tqdm = "^4.67.0.20250319"
+mypy = "^1.17.0"
+ruff = "^0.12.4"
+types-tqdm = "^4.67.0.20250516"
 yapf = "^0.43.0"
 
 [tool.poetry.group.docs]
@@ -109,19 +109,19 @@ optional = true
 
 [tool.poetry.group.docs.dependencies]
 autodoc-pydantic = "^2.2.0"
-doc8 = "^1.1.2"
+doc8 = "^2.0.0"
 docutils = "^0.21.2"
 esbonio = "^0.16.5"
-numpydoc = "^1.8.0"
+numpydoc = "^1.9.0"
 restructuredtext-lint = "^1.4.0"
 sphinx-click = "^6.0.0"
-sphinx-datatables = "^0.2.1"
+sphinx-datatables = "^0.3.0"
 sphinx-hoverxref = "^1.4.2"
 sphinx-immaterial = "^0.13.5"
 
 [tool.poetry.group.docs.dependencies.enum-tools]
 extras = ["sphinx"]
-version = "^0.12.0"
+version = "^0.13.0"
 
 [[tool.poetry.group.docs.dependencies.sphinx]]
 python = ">=3.11"
@@ -136,9 +136,9 @@ optional = true
 
 [tool.poetry.group.tests.dependencies]
 mock = "^5.2.0"
-pytest = "^8.3.5"
-pytest-cov = "^6.1.1"
-pytest-mock = "^3.14.0"
+pytest = "^8.4.1"
+pytest-cov = "^6.2.1"
+pytest-mock = "^3.14.1"
 
 [tool.poetry.group.tests.dependencies.coveralls]
 python = "<3.13"
