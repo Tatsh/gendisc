@@ -5,6 +5,7 @@
 [![GitHub tag (with filter)](https://img.shields.io/github/v/tag/Tatsh/gendisc)](https://github.com/Tatsh/gendisc/tags)
 [![License](https://img.shields.io/github/license/Tatsh/gendisc)](https://github.com/Tatsh/gendisc/blob/master/LICENSE.txt)
 [![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/Tatsh/gendisc/v0.0.13/master)](https://github.com/Tatsh/gendisc/compare/v0.0.13...master)
+[![CodeQL](https://github.com/Tatsh/gendisc/actions/workflows/codeql.yml/badge.svg)](https://github.com/Tatsh/gendisc/actions/workflows/codeql.yml)
 [![QA](https://github.com/Tatsh/gendisc/actions/workflows/qa.yml/badge.svg)](https://github.com/Tatsh/gendisc/actions/workflows/qa.yml)
 [![Tests](https://github.com/Tatsh/gendisc/actions/workflows/tests.yml/badge.svg)](https://github.com/Tatsh/gendisc/actions/workflows/tests.yml)
 [![Coverage Status](https://coveralls.io/repos/github/Tatsh/gendisc/badge.svg?branch=master)](https://coveralls.io/github/Tatsh/gendisc?branch=master)
