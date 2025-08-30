@@ -202,5 +202,4 @@ def genlabel_main(text: tuple[str, ...],
                               start_theta,
                               end_theta,
                               theta_step,
-                              keep=keep_svg,
-                              debug=debug)
+                              keep=keep_svg)

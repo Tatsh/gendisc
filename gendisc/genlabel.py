@@ -315,7 +315,6 @@ def write_spiral_text_png(filename: str | os.PathLike[str],
                           end_theta: _SupportsFloatOrIndex = DEFAULT_END_THETA,
                           theta_step: _SupportsFloatOrIndex = DEFAULT_THETA_STEP,
                           *,
-                          debug: bool = False,
                           keep: bool = False) -> None:
     """
     Write a spiral text SVG string to a file.
