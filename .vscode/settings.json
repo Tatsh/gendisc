@@ -2,6 +2,9 @@
   "[jinja-shell]": {
     "editor.tabSize": 4
   },
+  "[jsonnet]": {
+    "editor.defaultFormatter": "Grafana.vscode-jsonnet"
+  },
   "[python]": {
     "editor.defaultFormatter": "eeyore.yapf",
     "editor.formatOnSaveMode": "file",

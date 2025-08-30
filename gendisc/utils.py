@@ -41,54 +41,6 @@ _jinja_env = jinja2.Environment(autoescape=jinja2.select_autoescape(),
                                 trim_blocks=True,
                                 undefined=jinja2.StrictUndefined)
 
-
-def setup_logging(*,
-                  debug: bool = False,
-                  force_color: bool = False,
-                  no_color: bool = False) -> None:  # pragma: no cover
-    """Set up logging configuration."""
-    logging.config.dictConfig({
-        'disable_existing_loggers': True,
-        'root': {
-            'level': 'DEBUG' if debug else 'INFO',
-            'handlers': ['console'],
-        },
-        'formatters': {
-            'default': {
-                '()': 'colorlog.ColoredFormatter',
-                'force_color': force_color,
-                'format': (
-                    '%(light_cyan)s%(asctime)s%(reset)s | %(log_color)s%(levelname)-8s%(reset)s | '
-                    '%(light_green)s%(name)s%(reset)s:%(light_red)s%(funcName)s%(reset)s:'
-                    '%(blue)s%(lineno)d%(reset)s - %(message)s'),
-                'no_color': no_color,
-            },
-            'simple': {
-                'format': '%(levelname)s: %(message)s',
-            }
-        },
-        'handlers': {
-            'console': {
-                'class': 'colorlog.StreamHandler',
-                'formatter': 'default' if debug else 'simple',
-            }
-        },
-        'loggers': {
-            'gendisc': {
-                'level': 'INFO' if not debug else 'DEBUG',
-                'handlers': ('console',),
-                'propagate': False,
-            },
-            'wakepy': {
-                'level': 'INFO' if not debug else 'DEBUG',
-                'handlers': ('console',),
-                'propagate': False,
-            },
-        },
-        'version': 1
-    })
-
-
 convert_size_bytes_to_string = cache(fsutil.convert_size_bytes_to_string)
 path_join = cache(os.path.join)
 quote = cache(shlex.quote)
@@ -101,7 +53,8 @@ def get_dir_size(path: str) -> int:
     size = 0
     if not isdir(path):  # noqa: PTH112
         raise NotADirectoryError
-    for basepath, _, filenames in tqdm(walk(path), desc=f'Calculating size of {path}', unit=' dir'):
+    for basepath, _, filenames in tqdm(  # noqa: PLR1702
+            walk(path), desc=f'Calculating size of {path}', unit=' dir'):
         for filename in filenames:
             filepath = path_join(basepath, filename)
             if not islink(filepath):  # noqa: PTH114
@@ -183,7 +136,7 @@ _DiscType = Literal['CD-R', 'DVD-R', 'DVD-R DL', 'BD-R', 'BD-R DL', 'BD-R XL (10
 
 
 @cache
-def get_disc_type(total: int) -> _DiscType:  # noqa: PLR0911
+def get_disc_type(total: int) -> _DiscType:
     """
     Get disc type based on total size in bytes.
 
@@ -231,7 +184,7 @@ class WriteSpeeds(NamedTuple):
     """BD-R TL write speed."""
     bd_xl: int = 4
     """BD-R XL write speed."""
-    def get_speed(self, disc_type: _DiscType) -> int | float:  # noqa: PLR0911
+    def get_speed(self, disc_type: _DiscType) -> int | float:
         """
         Get the write speed for the given disc type.
 
@@ -308,7 +261,7 @@ class DirectorySplitter:
         self._reset()
         self._next_total = self._size
 
-    def _append_set(self) -> None:
+    def _append_set(self) -> None:  # noqa: PLR0914
         if self._current_set:
             index = len(self._sets) + self._starting_index
             fn_prefix = f'{self._prefix}-{index:03d}'

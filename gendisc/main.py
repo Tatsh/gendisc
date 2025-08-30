@@ -5,6 +5,7 @@ from functools import partialmethod
 from pathlib import Path
 import logging
 
+from bascom import setup_logging
 from tqdm import tqdm
 from wakepy import keep
 import click
@@ -22,7 +23,7 @@ from .genlabel import (
     write_spiral_text_png,
     write_spiral_text_svg,
 )
-from .utils import DirectorySplitter, WriteSpeeds, setup_logging
+from .utils import DirectorySplitter, WriteSpeeds
 
 __all__ = ('main',)
 
@@ -81,7 +82,19 @@ def main(path: Path,
          delete: bool = False,
          no_labels: bool = False) -> None:
     """Make a file listing filling up discs."""
-    setup_logging(debug=debug)
+    setup_logging(debug=debug,
+                  loggers={
+                      'gendisc': {
+                          'level': 'INFO' if not debug else 'DEBUG',
+                          'handlers': ('console',),
+                          'propagate': False,
+                      },
+                      'wakepy': {
+                          'level': 'INFO' if not debug else 'DEBUG',
+                          'handlers': ('console',),
+                          'propagate': False,
+                      },
+                  })
     if debug:
         tqdm.__init__ = partialmethod(  # type: ignore[assignment,method-assign]
             tqdm.__init__, disable=True)
@@ -162,7 +175,14 @@ def genlabel_main(text: tuple[str, ...],
                   keep_svg: bool = False,
                   svg: bool = False) -> None:
     """Generate an image intended for printing on disc consisting of text in a spiral."""
-    setup_logging(debug=debug)
+    setup_logging(debug=debug,
+                  loggers={
+                      'gendisc': {
+                          'level': 'INFO' if not debug else 'DEBUG',
+                          'handlers': ('console',),
+                          'propagate': False,
+                      }
+                  })
     if svg:
         write_spiral_text_svg(output.with_suffix('.svg'), ' '.join(text), width, height, view_box,
                               font_size,

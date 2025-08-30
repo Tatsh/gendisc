@@ -1,5 +1,7 @@
+asyncio
 autodoc
 automodule
+bascom
 bluray
 bsky
 burnfree
@@ -9,21 +11,21 @@ cifs
 cleanup
 codeowners
 colored
-colorlog
 colorspace
 commitizen
 conftest
 coreutils
 coveragerc
+dataclasses
 datatable
 datatables
 debugpy
 djlint
+docstrings
 doctrees
 driveropts
 eeyore
 elif
-epson
 esac
 esbenp
 esbonio
@@ -45,6 +47,7 @@ inkscape
 inodes
 intersphinx
 isort
+itertools
 jinja
 jsonnet
 jsonschema
@@ -56,6 +59,7 @@ mkisofs
 modindex
 mogrify
 mypy
+namedtuples
 norecursedirs
 numpy
 numpydoc
@@ -68,6 +72,7 @@ pycache
 pydantic
 pydocstyle
 pylance
+pylint
 pyproject
 pyright
 pytest

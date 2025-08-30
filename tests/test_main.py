@@ -24,7 +24,7 @@ def test_main_debug_logging(runner: CliRunner, mocker: MockerFixture) -> None:
     mocker.patch('gendisc.main.DirectorySplitter')
     mock_logging = mocker.patch('gendisc.main.setup_logging')
     runner.invoke(main, ['test_path', '--debug'])
-    mock_logging.assert_called_once_with(debug=True)
+    mock_logging.assert_called_once_with(debug=True, loggers=mocker.ANY)
 
 
 def test_main_default_values(runner: CliRunner, mocker: MockerFixture) -> None:

@@ -8,6 +8,9 @@
   citation+: {
     'date-released': '2025-05-26',
   },
+  copilot: {
+    intro: 'gendisc generates disk file path lists for mkisofs.',
+  },
   pyproject+: {
     project+: {
       scripts+: {
@@ -20,12 +23,12 @@
           jinja2: '^3.1.6',
           'python-fsutil': '^0.15.0',
           tqdm: '^4.67.1',
-          wakepy: '^0.10.1',
+          wakepy: '^0.10.2.post1',
         },
         group+: {
           dev+: {
             dependencies+: {
-              'types-tqdm': '^4.67.0.20250319',
+              'types-tqdm': '^4.67.0.20250809',
             },
           },
         },
