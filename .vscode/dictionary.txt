@@ -10,7 +10,6 @@ cdrtools
 cifs
 cleanup
 codeowners
-colored
 colorspace
 commitizen
 conftest
@@ -51,7 +50,6 @@ itertools
 jinja
 jsonnet
 jsonschema
-levelname
 lextudio
 libjsonnet
 linters
@@ -73,6 +71,7 @@ pydantic
 pydocstyle
 pylance
 pylint
+pypi
 pyproject
 pyright
 pytest

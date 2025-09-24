@@ -1,5 +1,6 @@
-(import 'defaults.libjsonnet') + {
-  // Project-specific
+local utils = import 'utils.libjsonnet';
+
+{
   description: 'Generate disk file path lists for mkisofs.',
   keywords: ['backup', 'iso', 'media', 'optical'],
   project_name: 'gendisc',
@@ -8,7 +9,7 @@
   citation+: {
     'date-released': '2025-05-26',
   },
-  copilot: {
+  copilot+: {
     intro: 'gendisc generates disk file path lists for mkisofs.',
   },
   pyproject+: {
@@ -20,15 +21,15 @@
     tool+: {
       poetry+: {
         dependencies+: {
-          jinja2: '^3.1.6',
-          'python-fsutil': '^0.15.0',
-          tqdm: '^4.67.1',
-          wakepy: '^0.10.2.post1',
+          jinja2: utils.latestPypiPackageVersionCaret('jinja2'),
+          'python-fsutil': utils.latestPypiPackageVersionCaret('python-fsutil'),
+          tqdm: utils.latestPypiPackageVersionCaret('tqdm'),
+          wakepy: utils.latestPypiPackageVersionCaret('wakepy'),
         },
         group+: {
           dev+: {
             dependencies+: {
-              'types-tqdm': '^4.67.0.20250809',
+              'types-tqdm': utils.latestPypiPackageVersionCaret('types-tqdm'),
             },
           },
         },
