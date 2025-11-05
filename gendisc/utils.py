@@ -8,7 +8,6 @@ from os.path import commonprefix, isdir, islink
 from pathlib import Path
 from typing import Literal, NamedTuple, overload
 import logging
-import logging.config
 import os
 import re
 import shlex
