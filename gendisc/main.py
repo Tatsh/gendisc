@@ -85,12 +85,10 @@ def main(path: Path,
     setup_logging(debug=debug,
                   loggers={
                       'gendisc': {
-                          'level': 'INFO' if not debug else 'DEBUG',
                           'handlers': ('console',),
                           'propagate': False,
                       },
                       'wakepy': {
-                          'level': 'INFO' if not debug else 'DEBUG',
                           'handlers': ('console',),
                           'propagate': False,
                       },
@@ -175,14 +173,10 @@ def genlabel_main(text: tuple[str, ...],
                   keep_svg: bool = False,
                   svg: bool = False) -> None:
     """Generate an image intended for printing on disc consisting of text in a spiral."""
-    setup_logging(debug=debug,
-                  loggers={
-                      'gendisc': {
-                          'level': 'INFO' if not debug else 'DEBUG',
-                          'handlers': ('console',),
-                          'propagate': False,
-                      }
-                  })
+    setup_logging(debug=debug, loggers={'gendisc': {
+        'handlers': ('console',),
+        'propagate': False,
+    }})
     if svg:
         write_spiral_text_svg(output.with_suffix('.svg'), ' '.join(text), width, height, view_box,
                               font_size,
