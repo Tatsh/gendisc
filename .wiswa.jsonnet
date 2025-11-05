@@ -12,6 +12,9 @@ local utils = import 'utils.libjsonnet';
   copilot+: {
     intro: 'gendisc generates disk file path lists for mkisofs.',
   },
+  pyinstaller+: {
+    extra_args: ['--add-data', '"${project_name}/templates:${project_name}/templates"'],
+  },
   pyproject+: {
     project+: {
       scripts+: {
