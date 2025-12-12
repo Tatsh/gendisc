@@ -19,8 +19,8 @@ gendisc
       :target: https://github.com/Tatsh/gendisc/blob/master/LICENSE.txt
       :alt: License
 
-   .. image:: https://img.shields.io/github/commits-since/Tatsh/gendisc/v0.0.13/master
-      :target: https://github.com/Tatsh/gendisc/compare/v0.0.13...master
+   .. image:: https://img.shields.io/github/commits-since/Tatsh/gendisc/v0.0.14/master
+      :target: https://github.com/Tatsh/gendisc/compare/v0.0.14...master
       :alt: GitHub commits since latest release (by SemVer including pre-releases)
 
    .. image:: https://github.com/Tatsh/gendisc/actions/workflows/codeql.yml/badge.svg

@@ -4,7 +4,7 @@ local utils = import 'utils.libjsonnet';
   description: 'Generate disk file path lists for mkisofs.',
   keywords: ['backup', 'iso', 'media', 'optical'],
   project_name: 'gendisc',
-  version: '0.0.13',
+  version: '0.0.14',
   want_main: true,
   citation+: {
     'date-released': '2025-05-26',
