@@ -45,7 +45,6 @@ getopts
 gkops
 globaltoc
 gracetime
-hoverxref
 htmlcov
 inkscape
 inodes
@@ -60,6 +59,7 @@ lextudio
 libera
 libjsonnet
 linters
+manylinux
 mkisofs
 modindex
 mogrify
