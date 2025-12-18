@@ -45,7 +45,6 @@ getopts
 gkops
 globaltoc
 gracetime
-hoverxref
 htmlcov
 inkscape
 inodes
