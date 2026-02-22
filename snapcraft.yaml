@@ -1,0 +1,24 @@
+apps:
+  gendisc:
+    command: 'bin/gendisc'
+    plugs:
+      - 'home'
+      - 'network'
+      - 'network-bind'
+base: 'core24'
+confinement: 'strict'
+description: 'Generate disk file path lists for mkisofs.'
+grade: 'stable'
+name: 'gendisc'
+parts:
+  gendisc:
+    plugin: 'poetry'
+    source: '.'
+    stage-packages: []
+platforms:
+  amd64:
+    build-on: 'amd64'
+  arm64:
+    build-on: 'arm64'
+summary: 'Generate disk file path lists for mkisofs.'
+version: '0.0.14'

@@ -89,21 +89,21 @@ bascom = "^0.1.2"
 click = "^8.3.1"
 jinja2 = "^3.1.6"
 python = ">=3.10,<4.0"
-python-fsutil = "^0.15.0"
-tqdm = "^4.67.1"
+python-fsutil = "^0.16.0"
+tqdm = "^4.67.3"
 typing-extensions = "^4.15.0"
-wakepy = "^0.10.2.post1"
+wakepy = "^1.0.0"
 
 [tool.poetry.group.dev]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-commitizen = "^4.11.0"
+commitizen = "^4.13.8"
 cz-path = "^0.0.4"
 djlint = "^1.36.4"
 mypy = "^1.19.1"
-ruff = "^0.14.10"
-types-tqdm = "^4.67.0.20250809"
+ruff = "^0.15.2"
+types-tqdm = "^4.67.3.20260205"
 yapf = "^0.43.0"
 
 [tool.poetry.group.docs]
@@ -113,13 +113,13 @@ optional = true
 autodoc-pydantic = "^2.2.0"
 doc8 = "^2.0.0"
 docutils = "<0.22"
-esbonio = "^1.0.0"
+esbonio = "^1.1.0"
 numpydoc = "^1.10.0"
 restructuredtext-lint = "^2.0.2"
 sphinx-click = "^6.2.0"
-sphinx-datatables = "^0.5.0"
-sphinx-immaterial = "^0.13.8"
-tomlkit = "^0.13.3"
+sphinx-datatables = "^1.0.0"
+sphinx-immaterial = "^0.13.9"
+tomlkit = "^0.14.0"
 
 [tool.poetry.group.docs.dependencies.enum-tools]
 extras = ["sphinx"]

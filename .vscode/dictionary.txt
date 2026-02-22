@@ -11,7 +11,6 @@ burnfree
 cdrecord
 cdrtools
 cifs
-codeowners
 colorlog
 colorspace
 commitizen
@@ -41,6 +40,7 @@ fsutil
 gendisc
 genindex
 genlabel
+getline
 getopts
 gkops
 globaltoc
@@ -90,6 +90,8 @@ rstcheck
 schemafile
 sdist
 shellformat
+snapcore
+snapcraft
 softprops
 sphinxcontrib
 sysid
