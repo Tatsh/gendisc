@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from functools import cache
 from os import walk
-from os.path import commonprefix, isdir, islink
+from os.path import commonpath, isdir, islink
 from pathlib import Path
 from typing import Literal, NamedTuple, overload
 import logging
@@ -315,7 +315,7 @@ class DirectorySplitter:
             log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))
             if self._has_mogrify:
                 log.debug('Creating label for "%s".', orig_vol_id)
-                common_prefix = (commonprefix(self._current_set).split('/', 1)[0] if len(
+                common_prefix = (commonpath(self._current_set).split('/', 1)[0] if len(
                     self._current_set) > 1 else self._current_set[0].split('/', 1)[0])
                 log.debug('Common prefix: %s', common_prefix)
                 l_common_prefix = len(common_prefix) + 1

@@ -9,6 +9,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+### Fixed
+
+- Fix label generation producing incorrect common path prefix by replacing `os.path.commonprefix`
+  (character-based) with `os.path.commonpath` (path-aware) in `DirectorySplitter`.
+
 ## [0.0.14] - 2025-05-26
 
 ### Changed
