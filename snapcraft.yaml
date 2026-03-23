@@ -7,12 +7,19 @@ apps:
       - 'network-bind'
 base: 'core24'
 confinement: 'strict'
+contact: 'https://github.com/Tatsh/gendisc/issues'
 description: 'Generate disk file path lists for mkisofs.'
+donation: 'https://buymeacoffee.com/Tatsh'
 grade: 'stable'
+issues: 'https://github.com/Tatsh/gendisc/issues'
+license: 'MIT'
 name: 'gendisc'
 parts:
   gendisc:
-    plugin: 'poetry'
+    build-packages: []
+    plugin: 'python'
+    python-packages:
+      - '.'
     source: '.'
     stage-packages: []
 platforms:
@@ -20,5 +27,8 @@ platforms:
     build-on: 'amd64'
   arm64:
     build-on: 'arm64'
+source-code: 'https://github.com/Tatsh/gendisc'
 summary: 'Generate disk file path lists for mkisofs.'
+title: 'gendisc'
 version: '0.0.14'
+website: 'https://tatsh.github.io/gendisc/'
