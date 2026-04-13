@@ -1,4 +1,5 @@
 anchore
+Ångström
 appdir
 appimage
 appinfo
@@ -13,12 +14,14 @@ cdrecord
 cdrommsf
 cdrtools
 cifs
+codesign
 colorlog
 colorspace
+commitizen
 commonpath
 commonprefix
-commitizen
 conftest
+cooldown
 coreutils
 coveragerc
 coverallsapp
@@ -29,8 +32,8 @@ datatable
 datatables
 debugpy
 docstrings
+doctree
 doctrees
-dorny
 driveropts
 dunder
 eeyore
@@ -41,7 +44,7 @@ esbonio
 excinfo
 exiftool
 filevers
-fontawesome
+flathub
 foxundermoon
 fsutil
 functools
@@ -63,6 +66,7 @@ jinja
 jsonnet
 jsonschema
 kwargs
+lastexitcode
 launchable
 lextudio
 libera
@@ -79,6 +83,8 @@ myproject
 mypy
 namedtuples
 norecursedirs
+notarytool
+npmjs
 numpy
 numpydoc
 onefile
@@ -97,6 +103,7 @@ pydantic
 pydocstyle
 pyinstaller
 pylint
+pylock
 pypa
 pypi
 pyproject
@@ -104,9 +111,11 @@ pytest
 regen
 rstcheck
 schemafile
+sdist
 setattr
 shellcheck
 shellformat
+signtool
 snapcore
 snapcraft
 softprops
@@ -132,7 +141,8 @@ virtualenv
 volid
 wakepy
 wiswa
+wiswa's
+xcrun
 yapf
 yapfignore
 yarnrc
-ångström

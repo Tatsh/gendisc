@@ -1,17 +1,14 @@
 local utils = import 'utils.libjsonnet';
 
 {
+  uses_user_defaults: true,
   description: 'Generate disk file path lists for mkisofs.',
   keywords: ['backup', 'iso', 'media', 'optical'],
   project_name: 'gendisc',
   version: '0.0.14',
   want_main: true,
-  citation+: {
-    'date-released': '2025-05-26',
-  },
-  copilot+: {
-    intro: 'gendisc generates disk file path lists for mkisofs.',
-  },
+  want_flatpak: true,
+  publishing+: { flathub: 'sh.tat.gendisc' },
   pyinstaller+: {
     extra_args: ['--add-data', '"${project_name}/templates:${project_name}/templates"'],
   },
