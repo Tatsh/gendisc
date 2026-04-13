@@ -24,11 +24,12 @@ __all__ = ('MogrifyNotFound', 'Point', 'create_spiral_path', 'create_spiral_text
            'write_spiral_text_png', 'write_spiral_text_svg')
 
 log = logging.getLogger(__name__)
-_jinja_env = jinja2.Environment(autoescape=jinja2.select_autoescape(),
-                                loader=jinja2.PackageLoader(__package__),
-                                lstrip_blocks=True,
-                                trim_blocks=True,
-                                undefined=jinja2.StrictUndefined)
+_jinja_env = jinja2.Environment(
+    autoescape=jinja2.select_autoescape(),
+    loader=jinja2.PackageLoader(__package__),  # ty: ignore[invalid-argument-type]
+    lstrip_blocks=True,
+    trim_blocks=True,
+    undefined=jinja2.StrictUndefined)
 
 
 @dataclass

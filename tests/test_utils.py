@@ -132,7 +132,8 @@ def test_write_speeds_get_speed_valid() -> None:
 def test_write_speeds_get_speed_invalid() -> None:
     speeds = WriteSpeeds()
     with pytest.raises(ValueError, match=r'Unknown disc type:'):
-        speeds.get_speed('UNKNOWN-DISC')  # type: ignore[arg-type]
+        speeds.get_speed(
+            'UNKNOWN-DISC')  # type: ignore[arg-type] # ty: ignore[invalid-argument-type]
 
 
 def test_is_cross_fs(mocker: MockerFixture) -> None:
@@ -310,10 +311,23 @@ def test_lazy_mounts_read(mocker: MockerFixture) -> None:
     assert mounts == ['/', '/mnt']
 
 
+def test_lazy_mounts_starts_uninitialized() -> None:
+    assert LazyMounts()._mounts is None
+
+
+def test_lazy_mounts_mounts_raises_when_reload_leaves_empty(mocker: MockerFixture) -> None:
+    def reload_noop(_: LazyMounts) -> None:
+        pass
+
+    mocker.patch.object(LazyMounts, 'reload', reload_noop)
+    lm = LazyMounts()
+    with pytest.raises(RuntimeError, match='Mounts failed to initialise'):
+        _ = lm.mounts
+
+
 def test_lazy_mounts_initialize_and_reload(mocker: MockerFixture) -> None:
     mocker.patch.object(LazyMounts, '_read', return_value=['/mnt', '/media'])
     lm = LazyMounts()
-    assert lm._mounts is None
     lm.initialize()
     assert lm._mounts == ['/mnt', '/media']
     lm._mounts = None

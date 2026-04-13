@@ -94,8 +94,9 @@ def main(path: Path,
                       },
                   })
     if debug:
-        tqdm.__init__ = partialmethod(  # type: ignore[assignment,method-assign]
-            tqdm.__init__, disable=True)
+        tqdm.__init__ = partialmethod(  # type: ignore[assignment,method-assign] # ty: ignore[invalid-assignment]
+            tqdm.__init__,
+            disable=True)
     output_dir_p = Path(output_dir).resolve()
     output_dir_p.mkdir(parents=True, exist_ok=True)
     with keep.running():

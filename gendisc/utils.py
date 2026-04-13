@@ -34,11 +34,12 @@ from .genlabel import write_spiral_text_png
 __all__ = ('DirectorySplitter', 'WriteSpeeds', 'get_disc_type')
 
 log = logging.getLogger(__name__)
-_jinja_env = jinja2.Environment(autoescape=jinja2.select_autoescape(),
-                                loader=jinja2.PackageLoader(__package__),
-                                lstrip_blocks=True,
-                                trim_blocks=True,
-                                undefined=jinja2.StrictUndefined)
+_jinja_env = jinja2.Environment(
+    autoescape=jinja2.select_autoescape(),
+    loader=jinja2.PackageLoader(__package__),  # ty: ignore[invalid-argument-type]
+    lstrip_blocks=True,
+    trim_blocks=True,
+    undefined=jinja2.StrictUndefined)
 
 convert_size_bytes_to_string = cache(fsutil.convert_size_bytes_to_string)
 path_join = cache(os.path.join)
@@ -59,7 +60,7 @@ def get_dir_size(path: str) -> int:
             if not islink(filepath):  # noqa: PTH114
                 try:
                     log.debug('Getting file size for %s.', filepath)
-                    size += get_file_size(filepath)
+                    size += get_file_size(filepath)  # ty: ignore[invalid-argument-type]
                 except OSError:
                     if isdir(filepath):  # noqa: PTH112
                         # On cifs with 'unix' option directories get reported as files from walk().
@@ -69,7 +70,7 @@ def get_dir_size(path: str) -> int:
                                 ' %s as file.', filepath)
                             _REPORTED_BUGGY_FS = True
                         # Still have to traverse this path since walk() did not.
-                        size += get_dir_size(filepath)
+                        size += get_dir_size(filepath)  # ty: ignore[invalid-argument-type]
                     else:
                         log.exception(
                             'Caught error getting file size for %s. It will not be considered '
@@ -92,33 +93,45 @@ class LazyMounts(Sequence[str]):
     def reload(self) -> None:
         self._mounts = self._read()
 
-    @property
-    def mounts(self) -> list[str]:
+    def _get_mounts(self) -> list[str]:
+        """
+        Return cached mount paths, loading from `/proc/mounts` if needed.
+
+        Returns
+        -------
+        list[str]
+            Mount point paths.
+
+        Raises
+        ------
+        RuntimeError
+            If mounts could not be loaded.
+        """
         self.initialize()
-        assert self._mounts is not None
+        if self._mounts is None:
+            msg = 'Mounts failed to initialise.'
+            raise RuntimeError(msg)
         return self._mounts
 
-    @override
+    @property
+    def mounts(self) -> list[str]:
+        return self._get_mounts()
+
     @overload
     def __getitem__(self, index_or_slice: int) -> str:  # pragma: no cover
         ...
 
-    @override
     @overload
     def __getitem__(self, index_or_slice: slice) -> list[str]:  # pragma: no cover
         ...
 
     @override
     def __getitem__(self, index_or_slice: int | slice) -> str | list[str]:
-        self.initialize()
-        assert self._mounts is not None
-        return self._mounts[index_or_slice]
+        return self._get_mounts()[index_or_slice]
 
     @override
     def __len__(self) -> int:
-        self.initialize()
-        assert self._mounts is not None
-        return len(self._mounts)
+        return len(self._get_mounts())
 
 
 ISO_MAX_VOLID_LENGTH = 32
@@ -126,7 +139,14 @@ MOUNTS = LazyMounts()
 
 
 def is_cross_fs(dir_: str) -> bool:
-    """Check if the directory is on a different file system."""
+    """
+    Check if the directory is on a different file system.
+
+    Returns
+    -------
+    bool
+        Whether ``dir_`` is listed as a mount point.
+    """
     return dir_ in MOUNTS
 
 
@@ -138,6 +158,11 @@ _DiscType = Literal['CD-R', 'DVD-R', 'DVD-R DL', 'BD-R', 'BD-R DL', 'BD-R XL (10
 def get_disc_type(total: int) -> _DiscType:
     """
     Get disc type based on total size in bytes.
+
+    Returns
+    -------
+    _DiscType
+        The disc type that fits ``total`` bytes.
 
     Raises
     ------
@@ -186,6 +211,11 @@ class WriteSpeeds(NamedTuple):
     def get_speed(self, disc_type: _DiscType) -> int | float:
         """
         Get the write speed for the given disc type.
+
+        Returns
+        -------
+        int | float
+            Nominal write speed for ``disc_type``.
 
         Raises
         ------
