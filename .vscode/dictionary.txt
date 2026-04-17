@@ -130,6 +130,7 @@ tomlkit
 tomllib
 tomlq
 tonumber
+tostring
 tqdm
 tryfirst
 ubyte
