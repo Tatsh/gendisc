@@ -16,13 +16,6 @@ import shutil
 from anyio import Path as AsyncPath
 from anyio.to_thread import run_sync
 from fsutil import get_file_size
-from rich.progress import (
-    MofNCompleteColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
 import fsutil
 import jinja2
 
@@ -40,7 +33,9 @@ from .genlabel import write_spiral_text_png
 if TYPE_CHECKING:
     from collections.abc import Coroutine, Iterable
 
-__all__ = ('DirectorySplitter', 'WriteSpeeds', 'get_disc_type')
+    from .typing import AsyncStatusRun, SizeProgress
+
+__all__ = ('DirectorySplitter', 'MogrifyLabelPool', 'WriteSpeeds', 'get_disc_type')
 
 log = logging.getLogger(__name__)
 _jinja_env = jinja2.Environment(
@@ -77,6 +72,12 @@ def path_join(a: str, b: str) -> str:
 _STAT_CONCURRENCY = 64
 """Maximum number of concurrent ``stat``-like calls made by :py:func:`get_dir_size`."""
 
+_DEFAULT_MOGRIFY_WORKERS = 4
+"""Default number of concurrent mogrify workers for :py:class:`MogrifyLabelPool`."""
+
+_MOGRIFY_STOP = object()
+"""Sentinel placed on the mogrify queue so each worker task can exit."""
+
 
 @cache
 def _warn_buggy_fs_once(filepath: str) -> None:
@@ -91,7 +92,10 @@ def _warn_buggy_fs_once(filepath: str) -> None:
                 ' `%s` as file.', filepath)
 
 
-async def _file_size(filepath: str, semaphore: asyncio.Semaphore) -> int | None:
+async def _file_size(filepath: str,
+                     semaphore: asyncio.Semaphore,
+                     *,
+                     progress: SizeProgress | None = None) -> int | None:
     """
     Return the size of a file, bounded by ``semaphore``.
 
@@ -104,6 +108,9 @@ async def _file_size(filepath: str, semaphore: asyncio.Semaphore) -> int | None:
         Path to the file whose size should be returned.
     semaphore : asyncio.Semaphore
         Semaphore bounding the number of concurrent stat-like calls.
+    progress : SizeProgress | None
+        Optional progress reporter passed through to nested
+        :py:func:`get_dir_size` calls.
 
     Returns
     -------
@@ -119,14 +126,36 @@ async def _file_size(filepath: str, semaphore: asyncio.Semaphore) -> int | None:
             if isdir(filepath):  # noqa: ASYNC240, PTH112
                 # On cifs with 'unix' option, directories get reported as files from walk().
                 _warn_buggy_fs_once(filepath)
-                return await get_dir_size(filepath)
+                return await get_dir_size(filepath, progress=progress)
             log.exception(
                 'Caught error getting file size for `%s`. It will not be considered '
                 'part of the total.', filepath)
             return None
 
 
-async def get_dir_size(path: str) -> int:
+def _count_dir_files(path: str) -> int:
+    """
+    Count regular files under ``path`` using the same rules as :py:func:`get_dir_size`.
+
+    Symlinks are skipped so the count matches the work done during sizing.
+
+    Parameters
+    ----------
+    path : str
+        Root directory path.
+
+    Returns
+    -------
+    int
+        Number of non-symlink files found by :py:func:`os.walk`.
+    """
+    return sum(
+        sum(1 for filename in filenames
+            if not islink(path_join(basepath, filename)))  # noqa: PTH114
+        for basepath, _, filenames in walk(path))
+
+
+async def get_dir_size(path: str, *, progress: SizeProgress | None = None) -> int:
     """
     Calculate the total size of a directory recursively.
 
@@ -134,6 +163,10 @@ async def get_dir_size(path: str) -> int:
     ----------
     path : str
         Path to the directory to size.
+    progress : SizeProgress | None
+        Optional progress reporter. When ``None``, no progress is reported. The
+        reporter is supplied by the caller so that this module remains free of
+        any specific progress-rendering dependency.
 
     Returns
     -------
@@ -149,25 +182,27 @@ async def get_dir_size(path: str) -> int:
         raise NotADirectoryError
     size = 0
     semaphore = asyncio.Semaphore(_STAT_CONCURRENCY)
-    with Progress(SpinnerColumn(),
-                  TextColumn('[progress.description]{task.description}'),
-                  MofNCompleteColumn(),
-                  TimeElapsedColumn(),
-                  transient=True) as progress:
-        task_id = progress.add_task(f'Calculating size of {path}', total=None)
-        for basepath, _, filenames in walk(path):
-            progress.advance(task_id)
-            if not filenames:
-                continue
-            filepaths = [
-                path_join(basepath, filename) for filename in filenames
-                if not islink(path_join(basepath, filename))  # noqa: ASYNC240, PTH114
-            ]
-            if not filepaths:
-                continue
-            results = await asyncio.gather(*(_file_size(filepath, semaphore)
-                                             for filepath in filepaths))
-            size += sum(r for r in results if r is not None)
+    task = None
+    if progress is not None:
+        task = progress.add_task(f'Counting files under {path}', total=None)
+        file_total = await run_sync(_count_dir_files, path)
+        task.set_bounds(total=float(file_total), description=f'Calculating size of {path}')
+    else:
+        file_total = 0
+    for basepath, _, filenames in walk(path):
+        if not filenames:
+            continue
+        filepaths = [
+            path_join(basepath, filename) for filename in filenames
+            if not islink(path_join(basepath, filename))  # noqa: ASYNC240, PTH114
+        ]
+        if not filepaths:
+            continue
+        results = await asyncio.gather(*(_file_size(filepath, semaphore, progress=progress)
+                                         for filepath in filepaths))
+        size += sum(r for r in results if r is not None)
+        if task is not None:
+            task.advance(float(len(filepaths)))
     return size
 
 
@@ -355,6 +390,104 @@ class WriteSpeeds(NamedTuple):
                 raise ValueError(msg)
 
 
+class _MogrifyJob(NamedTuple):
+    """One queued disc label rasterisation job."""
+    fn_prefix: str
+    """Volume file-name prefix (for example ``prefix-001``)."""
+    label_path: str
+    """Filesystem path for the output PNG."""
+    spiral_text: str
+    """Spiral label text passed to :py:func:`~gendisc.genlabel.write_spiral_text_png`."""
+
+
+class MogrifyLabelPool:
+    """
+    Queue disc label jobs and process them with a fixed pool of concurrent workers.
+
+    Call :py:meth:`start` before enqueueing work, then :py:meth:`wait_until_finished` after all
+    producers have awaited :py:meth:`submit` so the process does not exit while mogrify work
+    remains.
+    """
+    def __init__(self, worker_count: int = _DEFAULT_MOGRIFY_WORKERS) -> None:
+        """
+        Configure the worker pool size.
+
+        Parameters
+        ----------
+        worker_count : int
+            Number of concurrent mogrify worker tasks (at least one).
+        """
+        self._queue: asyncio.Queue[_MogrifyJob | object] = asyncio.Queue()
+        self._started = False
+        self._workers: list[asyncio.Task[None]] = []
+        self._worker_count = max(1, worker_count)
+
+    async def start(self) -> None:
+        """
+        Start worker tasks.
+
+        Safe to call more than once; subsequent calls do nothing until
+        :py:meth:`wait_until_finished` has reset the pool.
+        """
+        if self._started:
+            return
+        self._started = True
+        self._workers = [
+            asyncio.create_task(self._worker_loop()) for _ in range(self._worker_count)
+        ]
+
+    async def submit(self, label_file: os.PathLike[str] | str, spiral_text: str, *,
+                     fn_prefix: str) -> None:
+        """
+        Enqueue one label PNG job for the worker pool.
+
+        Parameters
+        ----------
+        label_file : os.PathLike[str] | str
+            Destination path for the PNG.
+        spiral_text : str
+            Text for the spiral label.
+        fn_prefix : str
+            Short name for log messages (matches the volume file-name prefix).
+        """
+        label_path = str(Path(label_file))
+        await self._queue.put(_MogrifyJob(fn_prefix, label_path, spiral_text))
+
+    async def wait_until_finished(self) -> None:
+        """
+        Block until all submitted jobs complete, then stop workers.
+
+        Raises
+        ------
+        ValueError
+            If :py:meth:`start` was never called.
+        """
+        if not self._started:
+            msg = 'MogrifyLabelPool.start must be called before wait_until_finished.'
+            raise ValueError(msg)
+        await self._queue.join()
+        for _ in range(self._worker_count):
+            await self._queue.put(_MOGRIFY_STOP)
+        await asyncio.gather(*self._workers)
+        self._workers.clear()
+        self._started = False
+
+    async def _worker_loop(self) -> None:
+        while True:
+            raw = await self._queue.get()
+            try:
+                if raw is _MOGRIFY_STOP:
+                    return
+                if not isinstance(raw, _MogrifyJob):
+                    msg = 'Unexpected item on mogrify queue.'
+                    raise TypeError(msg)
+                job = raw
+                log.info('Running mogrify for disc label `%s`.', job.fn_prefix)
+                await write_spiral_text_png(job.label_path, job.spiral_text)
+            finally:
+                self._queue.task_done()
+
+
 class DirectorySplitter:
     """Split directories into sets for burning to disc."""
     def __init__(self,
@@ -367,10 +500,13 @@ class DirectorySplitter:
                  preparer: str | None = None,
                  publisher: str | None = None,
                  starting_index: int = 1,
+                 progress: SizeProgress | None = None,
                  write_speeds: WriteSpeeds | None = None,
                  *,
                  cross_fs: bool = False,
-                 labels: bool = False) -> None:
+                 labels: bool = False,
+                 mogrify_pool: MogrifyLabelPool | None = None,
+                 status_run: AsyncStatusRun | None = None) -> None:
         self._cross_fs = cross_fs
         self._current_set: list[str] = []
         self._delete_command = delete_command
@@ -379,12 +515,15 @@ class DirectorySplitter:
         self._has_mogrify = (False if not labels else (shutil.which('mogrify') is not None
                                                        and shutil.which('inkscape') is not None))
         self._l_path = len(str(Path(path).resolve(strict=True).parent))
+        self._mogrify_pool = mogrify_pool
         self._next_total = 0
         self._output_dir_p = AsyncPath(output_dir)
         self._path = AsyncPath(path)
         self._prefix = prefix
         self._prefix_parts = prefix_parts or (prefix,)
+        self._progress = progress
         self._sets: list[list[str]] = []
+        self._status_run = status_run
         self._size = 0
         self._size_cache: dict[str, int] = {}
         self._starting_index = starting_index
@@ -474,7 +613,15 @@ class DirectorySplitter:
                 sorted(
                     path_list_first_component(x[l_common_prefix:])
                     for x in self._current_set if x.strip()))
-            tasks.append(write_spiral_text_png(label_file, text))
+            if self._mogrify_pool is not None:
+                await self._mogrify_pool.submit(label_file, text, fn_prefix=fn_prefix)
+            else:
+                label_png = write_spiral_text_png(label_file, text)
+                if self._status_run is not None:
+                    status_message = f'Running mogrify for disc label `{fn_prefix}`...'
+                    tasks.append(self._status_run.run(status_message, label_png))
+                else:
+                    tasks.append(label_png)
         await asyncio.gather(*tasks)
         await sh_file.chmod(0o755)
         log.debug('%s total: %s', fn_prefix, convert_size_bytes_to_string(self._total))
@@ -485,7 +632,7 @@ class DirectorySplitter:
             cached = self._size_cache[dir_]
             return dir_, cached, ('Directory' if isdir(dir_) else 'File')  # noqa: ASYNC240, PTH112
         try:
-            size = await get_dir_size(dir_)
+            size = await get_dir_size(dir_, progress=self._progress)
             self._size_cache[dir_] = size
         except NotADirectoryError:
             try:
@@ -497,20 +644,25 @@ class DirectorySplitter:
         return dir_, size, 'Directory'
 
     async def _list_entries(self) -> list[str]:
-        path = await self._path.resolve(strict=True)
-        cmd = ('find', str(path), '-maxdepth', '1', '(', '-name', '.Trash-*', '-o', '-name',
-               'Trash', '-o', '-name', '.Trash', '-o', '-name', '.directory', ')', '-prune', '-o',
-               '-print')
-        log.debug('Running %s', shlex.join(cmd))
-        proc = await asyncio.create_subprocess_exec(*cmd,
-                                                    stdout=asyncio.subprocess.PIPE,
-                                                    stderr=asyncio.subprocess.PIPE)
-        stdout, _ = await proc.communicate()
-        if proc.returncode != 0:
-            msg = f'find exited with code {proc.returncode}.'
-            raise RuntimeError(msg)
-        entries = stdout.decode('utf-8').splitlines()[1:]
-        return sorted(sorted(entries), key=lambda x: not isdir(x))  # noqa: PTH112
+        async def _run_find() -> list[str]:
+            path = await self._path.resolve(strict=True)
+            cmd = ('find', str(path), '-maxdepth', '1', '(', '-name', '.Trash-*', '-o', '-name',
+                   'Trash', '-o', '-name', '.Trash', '-o', '-name', '.directory', ')', '-prune',
+                   '-o', '-print')
+            log.debug('Running %s', shlex.join(cmd))
+            proc = await asyncio.create_subprocess_exec(*cmd,
+                                                        stdout=asyncio.subprocess.PIPE,
+                                                        stderr=asyncio.subprocess.PIPE)
+            stdout, _ = await proc.communicate()
+            if proc.returncode != 0:
+                msg = f'find exited with code {proc.returncode}.'
+                raise RuntimeError(msg)
+            entries = stdout.decode('utf-8').splitlines()[1:]
+            return sorted(sorted(entries), key=lambda x: not isdir(x))  # noqa: PTH112
+
+        if self._status_run is not None:
+            return await self._status_run.run('Running find...', _run_find())
+        return await _run_find()
 
     async def split(self) -> None:
         """Split the directory into sets."""
@@ -561,11 +713,14 @@ class DirectorySplitter:
                                         delete_command=self._delete_command,
                                         drive=self._drive,
                                         labels=self._has_mogrify,
+                                        mogrify_pool=self._mogrify_pool,
                                         output_dir=self._output_dir_p,
                                         prefix_parts=(*self._prefix_parts, suffix),
                                         preparer=self._preparer,
+                                        progress=self._progress,
                                         publisher=self._publisher,
                                         starting_index=self._starting_index,
+                                        status_run=self._status_run,
                                         write_speeds=self._write_speeds).split()
                 self._reset()
                 continue

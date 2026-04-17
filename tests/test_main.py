@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import asyncio
 
 from gendisc.main import genlabel_main, main
+from gendisc.utils import MogrifyLabelPool
 
 if TYPE_CHECKING:
     from click.testing import CliRunner
@@ -27,6 +28,14 @@ def _patch_splitter(mocker: MockerFixture) -> MagicMock:
     return splitter_cls
 
 
+def _patch_main_asyncio_keyboard_interrupt(mocker: MockerFixture) -> None:
+    def _close_coro_and_raise(coro: Any) -> None:
+        coro.close()
+        raise KeyboardInterrupt
+
+    mocker.patch('gendisc.main.asyncio.run', side_effect=_close_coro_and_raise)
+
+
 def test_main_success(runner: CliRunner, mocker: MockerFixture) -> None:
     mocker.patch('gendisc.main.Path.mkdir')
     mocker.patch('gendisc.main.keep.running')
@@ -34,6 +43,17 @@ def test_main_success(runner: CliRunner, mocker: MockerFixture) -> None:
     _patch_splitter(mocker)
     result = runner.invoke(main, ('test_path', '-D', '/dev/sr0', '-o', 'output_dir', '-i', '1'))
     assert result.exit_code == 0
+    assert 'Scanning' in result.output
+
+
+def test_main_debug_suppresses_scanning_line(runner: CliRunner, mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.main.Path.mkdir')
+    mocker.patch('gendisc.main.keep.running')
+    _patch_asyncio_run(mocker)
+    _patch_splitter(mocker)
+    result = runner.invoke(main, ['test_path', '--debug'])
+    assert result.exit_code == 0
+    assert 'Scanning' not in result.output
 
 
 def test_main_debug_logging(runner: CliRunner, mocker: MockerFixture) -> None:
@@ -43,7 +63,7 @@ def test_main_debug_logging(runner: CliRunner, mocker: MockerFixture) -> None:
     _patch_splitter(mocker)
     mock_logging = mocker.patch('gendisc.main.setup_logging')
     runner.invoke(main, ['test_path', '--debug'])
-    mock_logging.assert_called_once_with(debug=True, loggers=mocker.ANY)
+    mock_logging.assert_called_once_with(debug=True, loggers=mocker.ANY, root=mocker.ANY)
 
 
 def test_main_default_values(runner: CliRunner, mocker: MockerFixture) -> None:
@@ -59,6 +79,19 @@ def test_main_default_values(runner: CliRunner, mocker: MockerFixture) -> None:
     assert kwargs['cross_fs'] is False
     assert kwargs['labels'] is True
     assert kwargs['delete_command'] == 'trash'
+    assert isinstance(kwargs['mogrify_pool'], MogrifyLabelPool)
+
+
+def test_main_no_labels_passes_no_mogrify_pool(runner: CliRunner, mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.main.Path.mkdir')
+    mocker.patch('gendisc.main.keep.running')
+    _patch_asyncio_run(mocker)
+    splitter_cls = _patch_splitter(mocker)
+    runner.invoke(main, ['test_path', '--no-labels'])
+    splitter_cls.assert_called_once()
+    _args, kwargs = splitter_cls.call_args
+    assert kwargs['labels'] is False
+    assert kwargs['mogrify_pool'] is None
 
 
 def test_main_delete_option(runner: CliRunner, mocker: MockerFixture) -> None:
@@ -117,6 +150,36 @@ def test_genlabel_main_keep_svg_flag(runner: CliRunner, mocker: MockerFixture) -
     runner.invoke(genlabel_main, ['KeepSVG', '-o', 'keep.png', '--keep-svg'])
     mock_png.assert_awaited_once()
     assert mock_png.call_args.kwargs.get('keep') is True
+
+
+def test_main_keyboard_interrupt_prints_acknowledgment(runner: CliRunner,
+                                                       mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.main.Path.mkdir')
+    mocker.patch('gendisc.main.keep.running')
+    _patch_main_asyncio_keyboard_interrupt(mocker)
+    result = runner.invoke(main, ['test_path'])
+    assert result.exit_code == 130
+    assert 'Interrupt received' in result.output
+
+
+def test_main_keyboard_interrupt_twice_warns_corruption(runner: CliRunner,
+                                                        mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.main.Path.mkdir')
+    mocker.patch('gendisc.main.keep.running')
+    mock_echo = mocker.patch('gendisc.main.click.echo', side_effect=[KeyboardInterrupt, None])
+    _patch_main_asyncio_keyboard_interrupt(mocker)
+    result = runner.invoke(main, ['test_path', '--debug'])
+    assert result.exit_code == 130
+    messages = [str(c[0][0]) for c in mock_echo.call_args_list if c[0]]
+    assert any('inconsistent' in m or 'corrupted' in m for m in messages)
+
+
+def test_genlabel_main_keyboard_interrupt_prints_acknowledgment(runner: CliRunner,
+                                                                mocker: MockerFixture) -> None:
+    _patch_main_asyncio_keyboard_interrupt(mocker)
+    result = runner.invoke(genlabel_main, ['Hello', '-o', 'out.png'])
+    assert result.exit_code == 130
+    assert 'Interrupt received' in result.output
 
 
 def test_genlabel_main_font_size_and_theta(runner: CliRunner, mocker: MockerFixture) -> None:

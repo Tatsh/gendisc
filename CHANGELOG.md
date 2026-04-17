@@ -16,6 +16,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - `gendisc.utils.get_mounts`, `gendisc.utils.reload_mounts`, and
     `gendisc.utils.clear_mounts_cache` for inspecting and managing the cached mount table.
   - Read-only `sets` property on `gendisc.utils.DirectorySplitter` exposing the split result.
+  - `gendisc.utils.MogrifyLabelPool` queues disc label rasterisation (`mogrify`) across concurrent
+    workers; the main CLI waits for the pool to drain before exiting.
+  - `gendisc.typing` with progress and status protocols for static typing.
 
 ### Changed
 
@@ -27,6 +30,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The `gendisc` and `gendisc-genlabel` CLI entry points remain synchronous but now size
   directories concurrently via `asyncio.gather` with a bounded semaphore.
 - Progress reporting switched from `tqdm` to `rich.progress`.
+- Main `gendisc` CLI prints a short `Scanning …` line before work begins (non-debug runs).
+- `gendisc.utils.get_dir_size` can show progress while counting files on large trees without
+  blocking the asyncio event loop.
+- `gendisc` and `gendisc-genlabel` print clear messages on `Ctrl+C`, warn if interrupted again
+  during shutdown, and exit with status 130.
 
 ### Removed
 

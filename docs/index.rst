@@ -66,15 +66,13 @@ Label generation
    Library
    -------
 
-   .. automodule:: gendisc
+   .. automodule:: gendisc.genlabel
       :members:
 
-   .. automodule:: gendisc.genlabel
-      :exclude-members: MogrifyNotFound, Point, write_spiral_text_png, write_spiral_text_svg
+   .. automodule:: gendisc.typing
       :members:
 
    .. automodule:: gendisc.utils
-      :exclude-members: DirectorySplitter
       :members:
 
    Indices and tables

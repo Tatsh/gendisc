@@ -1,11 +1,24 @@
 """Main command."""
 from __future__ import annotations
 
+from contextlib import nullcontext
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, TypeVar
 import asyncio
 import logging
 
+if TYPE_CHECKING:
+    from collections.abc import Coroutine
+
 from bascom import setup_logging
+from rich.progress import (
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TaskID,
+    TextColumn,
+    TimeElapsedColumn,
+)
 from wakepy import keep
 import click
 
@@ -22,28 +35,168 @@ from .genlabel import (
     write_spiral_text_png,
     write_spiral_text_svg,
 )
-from .utils import DirectorySplitter, WriteSpeeds
+from .utils import DirectorySplitter, MogrifyLabelPool, WriteSpeeds
 
 __all__ = ('main',)
 
 log = logging.getLogger(__name__)
 
+T = TypeVar('T')
+
+
+def _run_async_cli(coro: Coroutine[Any, Any, None]) -> None:
+    """
+    Run ``coro`` under :py:func:`asyncio.run` with ``Ctrl+C`` messaging.
+
+    Parameters
+    ----------
+    coro : collections.abc.Coroutine[Any, Any, None]
+        Main coroutine for the event loop.
+
+    Raises
+    ------
+    SystemExit
+        With code ``130`` after :py:exc:`KeyboardInterrupt` (typically ``Ctrl+C``).
+    """
+    try:
+        asyncio.run(coro)
+    except KeyboardInterrupt:
+        try:
+            click.echo(
+                '\nInterrupt received; shutting down (partial results may be incomplete).',
+                err=True,
+            )
+        except KeyboardInterrupt:
+            click.echo(
+                '\nRepeated interrupt: exiting without full cleanup; '
+                'outputs may be inconsistent or corrupted.',
+                err=True,
+            )
+        raise SystemExit(130) from None
+
+
+class _RichSizeProgressTask:  # pragma: no cover
+    """Adapt a :py:class:`rich.progress.Progress` task to ``SizeProgressTask``."""
+    def __init__(self, progress: Progress, task_id: TaskID) -> None:
+        self._progress = progress
+        self._task_id = task_id
+
+    def set_bounds(self, *, total: float, description: str | None = None) -> None:
+        """
+        Set the task total and optionally update its description.
+
+        Parameters
+        ----------
+        total : float
+            Total step count for the task.
+        description : str | None
+            New description, or ``None`` to leave the description unchanged.
+        """
+        if description is None:
+            self._progress.update(self._task_id, total=total)
+        else:
+            self._progress.update(self._task_id, total=total, description=description)
+
+    def advance(self, amount: float = 1) -> None:
+        """
+        Advance the underlying :py:mod:`rich` task by ``amount`` steps.
+
+        Parameters
+        ----------
+        amount : float
+            Number of steps to advance.
+        """
+        self._progress.advance(self._task_id, amount)
+
+
+class _RichSizeProgress:  # pragma: no cover
+    """Adapt a :py:class:`rich.progress.Progress` to ``SizeProgress``."""
+    def __init__(self, progress: Progress) -> None:
+        self._progress = progress
+
+    def add_task(self, description: str, total: float | None = None) -> _RichSizeProgressTask:
+        """
+        Create a new :py:mod:`rich` task.
+
+        Parameters
+        ----------
+        description : str
+            Human-readable description for the task.
+        total : float | None
+            Total number of steps, or ``None`` when indeterminate.
+
+        Returns
+        -------
+        _RichSizeProgressTask
+            The wrapped task.
+        """
+        return _RichSizeProgressTask(self._progress,
+                                     self._progress.add_task(description, total=total))
+
+
+class _RichAsyncStatusRun:  # pragma: no cover
+    """
+    Show :py:class:`rich.console.Console` status during utils work.
+
+    Used so :py:mod:`gendisc.utils` can show a spinner without importing :py:mod:`rich`.
+    """
+    def __init__(self, progress: Progress) -> None:
+        self._console = progress.console
+
+    async def run(self, message: str, awaitable: Coroutine[Any, Any, T]) -> T:
+        """
+        Await ``awaitable`` while displaying ``message`` with a spinner.
+
+        Parameters
+        ----------
+        message : str
+            Status text.
+        awaitable : collections.abc.Coroutine[Any, Any, T]
+            Coroutine to await.
+
+        Returns
+        -------
+        T
+            The coroutine result.
+        """
+        with self._console.status(message, spinner='dots'):
+            return await awaitable
+
 
 async def _run_split(path: Path, output_dir: Path, drive: Path, preparer: str | None,
                      publisher: str | None, prefix: str | None, starting_index: int,
                      write_speeds: WriteSpeeds, delete_command: str, *, cross_fs: bool,
-                     labels: bool) -> None:
-    await DirectorySplitter(path,
-                            prefix or path.name,
-                            cross_fs=cross_fs,
-                            delete_command=delete_command,
-                            drive=drive,
-                            labels=labels,
-                            output_dir=output_dir,
-                            preparer=preparer,
-                            publisher=publisher,
-                            starting_index=starting_index,
-                            write_speeds=write_speeds).split()
+                     labels: bool, quiet: bool) -> None:
+    progress_cm = nullcontext(None) if quiet else Progress(
+        SpinnerColumn(),
+        TextColumn('[progress.description]{task.description}'),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        transient=True)
+    with progress_cm as rich_progress:
+        progress = _RichSizeProgress(rich_progress) if rich_progress is not None else None
+        status_run = _RichAsyncStatusRun(rich_progress) if rich_progress is not None else None
+        mogrify_pool = MogrifyLabelPool() if labels else None
+        if mogrify_pool is not None:
+            await mogrify_pool.start()
+        try:
+            await DirectorySplitter(path,
+                                    prefix or path.name,
+                                    cross_fs=cross_fs,
+                                    delete_command=delete_command,
+                                    drive=drive,
+                                    labels=labels,
+                                    mogrify_pool=mogrify_pool,
+                                    output_dir=output_dir,
+                                    preparer=preparer,
+                                    progress=progress,
+                                    publisher=publisher,
+                                    starting_index=starting_index,
+                                    status_run=status_run,
+                                    write_speeds=write_speeds).split()
+        finally:
+            if mogrify_pool is not None:
+                await mogrify_pool.wait_until_finished()
 
 
 @click.command(context_settings={'help_option_names': ('-h', '--help')})
@@ -100,19 +253,18 @@ def main(path: Path,
     """Make a file listing filling up discs."""
     setup_logging(debug=debug,
                   loggers={
-                      'gendisc': {
-                          'handlers': ('console',),
-                          'propagate': False,
-                      },
-                      'wakepy': {
-                          'handlers': ('console',),
-                          'propagate': False,
-                      },
-                  })
+                      'gendisc': {},
+                      **({
+                          'wakepy': {}
+                      } if debug else {}),
+                  },
+                  root={'level': 'DEBUG' if debug else 'INFO'})
     output_dir_p = Path(output_dir).resolve()
     output_dir_p.mkdir(parents=True, exist_ok=True)
+    if not debug:
+        click.echo(f'Scanning "{path}"...')
     with keep.running():
-        asyncio.run(
+        _run_async_cli(
             _run_split(path,
                        output_dir_p,
                        drive,
@@ -129,7 +281,8 @@ def main(path: Path,
                                    bd_xl=bd_xl_write_speed),
                        'rm -rf' if delete else 'trash',
                        cross_fs=cross_fs,
-                       labels=not no_labels))
+                       labels=not no_labels,
+                       quiet=debug))
 
 
 async def _run_genlabel(output: Path, text: str, width: int, height: int | None,
@@ -213,11 +366,10 @@ def genlabel_main(text: tuple[str, ...],
                   keep_svg: bool = False,
                   svg: bool = False) -> None:
     """Generate an image intended for printing on disc consisting of text in a spiral."""
-    setup_logging(debug=debug, loggers={'gendisc': {
-        'handlers': ('console',),
-        'propagate': False,
-    }})
-    asyncio.run(
+    setup_logging(debug=debug, loggers={
+        'gendisc': {},
+    })
+    _run_async_cli(
         _run_genlabel(output,
                       ' '.join(text),
                       width,

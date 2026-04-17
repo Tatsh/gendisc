@@ -40,6 +40,14 @@ local utils = import 'utils.libjsonnet';
           asyncio_mode: 'auto',
         },
       },
+      coverage+: {
+        report+: {
+          omit+: ['gendisc/typing.py'],
+        },
+        run+: {
+          omit+: ['gendisc/typing.py'],
+        },
+      },
     },
   },
   vscode+: {

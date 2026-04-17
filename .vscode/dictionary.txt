@@ -1,5 +1,4 @@
 anchore
-Ångström
 anyio
 appdir
 appimage
@@ -24,6 +23,7 @@ commonprefix
 conftest
 cooldown
 coreutils
+coro
 coveragerc
 coverallsapp
 ctypes
@@ -148,3 +148,4 @@ xcrun
 yapf
 yapfignore
 yarnrc
+Ångström

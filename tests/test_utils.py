@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock
 
 from gendisc.utils import (
     DirectorySplitter,
+    MogrifyLabelPool,
     WriteSpeeds,
     clear_mounts_cache,
     get_dir_size,
@@ -16,6 +17,8 @@ from gendisc.utils import (
 import pytest
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable
+
     from pytest_mock import MockerFixture
 
 
@@ -60,6 +63,30 @@ async def test_get_dir_size_returns_correct_size(mocker: MockerFixture) -> None:
     mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
     size = await get_dir_size('some_dir')
     assert size == 3 * 2048
+
+
+async def test_get_dir_size_with_progress_counts_via_run_sync(mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.utils.walk', return_value=[('base', [], ['a', 'b'])])
+    mocker.patch('gendisc.utils.isdir', return_value=True)
+    mocker.patch('gendisc.utils.islink', return_value=False)
+    mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
+    mock_progress = MagicMock()
+    mock_task = MagicMock()
+    mock_progress.add_task.return_value = mock_task
+
+    def fake_run_sync(fn: object, *args: object, **kwargs: object) -> int:
+        if getattr(fn, '__name__', '') == '_count_dir_files':
+            return 2
+        return 1024
+
+    mocker.patch('gendisc.utils.run_sync', new_callable=AsyncMock, side_effect=fake_run_sync)
+    size = await get_dir_size('some_dir', progress=mock_progress)
+    assert size == 2048
+    add_call = mock_progress.add_task.call_args
+    assert 'Counting files' in add_call.args[0]
+    assert add_call.kwargs['total'] is None
+    mock_task.set_bounds.assert_called_once_with(total=2.0,
+                                                 description='Calculating size of some_dir')
 
 
 async def test_get_dir_size_skips_symlinks(mocker: MockerFixture) -> None:
@@ -301,6 +328,145 @@ async def test_directory_splitter_split_skips_cross_fs(mocker: MockerFixture,
     assert all('dir1' in entry for entry in splitter.sets[0])
     assert all('dir2' not in entry for entry in splitter.sets[0])
     mock_write_spiral.assert_called_once()
+
+
+async def test_directory_splitter_label_submits_to_mogrify_pool(mocker: MockerFixture) -> None:
+    mock_write_spiral = mocker.patch('gendisc.utils.write_spiral_text_png', new_callable=AsyncMock)
+    mocker.patch('gendisc.utils.shutil.which', return_value='fake-mogrify')
+    mock_proc = MagicMock()
+    mock_proc.communicate = AsyncMock(return_value=(b'.\ndir1\n', b''))
+    mock_proc.returncode = 0
+    mocker.patch('gendisc.utils.asyncio.create_subprocess_exec',
+                 new_callable=AsyncMock,
+                 return_value=mock_proc)
+    mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
+    mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    (mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.write_text
+     ) = AsyncMock()
+    mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.chmod = (
+        AsyncMock())
+    mock_async_path.return_value.__truediv__.return_value.mkdir = AsyncMock()
+    mocker.patch('gendisc.utils.walk', return_value=[('base', [], ['file1'])])
+    mocker.patch('gendisc.utils.isdir', return_value=True)
+    mocker.patch('gendisc.utils.islink', return_value=False)
+    mocker.patch('gendisc.utils.run_sync', new_callable=AsyncMock, return_value=1024)
+    mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
+    mocker.patch('gendisc.utils.get_mounts', new_callable=AsyncMock, return_value=[])
+    mocker.patch('gendisc.utils.Path')
+
+    async def status_run(message: str, awaitable: Awaitable[Any]) -> Any:
+        return await awaitable
+
+    mock_status = MagicMock()
+    mock_status.run = AsyncMock(side_effect=status_run)
+    pool = MogrifyLabelPool(worker_count=2)
+    await pool.start()
+    splitter = DirectorySplitter('test_path',
+                                 'prefix',
+                                 labels=True,
+                                 mogrify_pool=pool,
+                                 status_run=mock_status)
+    await splitter.split()
+    await pool.wait_until_finished()
+    mock_write_spiral.assert_awaited_once()
+
+
+async def test_mogrify_label_pool_drains_queue(mocker: MockerFixture) -> None:
+    mock_write = mocker.patch('gendisc.utils.write_spiral_text_png', new_callable=AsyncMock)
+    pool = MogrifyLabelPool(worker_count=2)
+    await pool.start()
+    await pool.submit('out/label-a.png', 't1', fn_prefix='p-001')
+    await pool.submit('out/label-b.png', 't2', fn_prefix='p-002')
+    await pool.wait_until_finished()
+    assert mock_write.await_count == 2
+
+
+async def test_mogrify_label_pool_wait_without_start_raises() -> None:
+    pool = MogrifyLabelPool()
+    with pytest.raises(ValueError, match='start'):
+        await pool.wait_until_finished()
+
+
+async def test_get_dir_size_with_progress_calls_count_dir_files(mocker: MockerFixture) -> None:
+    import gendisc.utils as utils_mod
+
+    count_fn = utils_mod._count_dir_files  # noqa: SLF001
+
+    def run_sync_side_effect(fn: object, *args: object, **_kwargs: object) -> int:
+        if fn is count_fn:
+            return int(count_fn(str(args[0])))
+        return 2048
+
+    mocker.patch('gendisc.utils.run_sync', new_callable=AsyncMock, side_effect=run_sync_side_effect)
+    mocker.patch('gendisc.utils.walk', return_value=[('base', [], ['a'])])
+    mocker.patch('gendisc.utils.isdir', return_value=True)
+    mocker.patch('gendisc.utils.islink', return_value=False)
+    mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
+    mock_progress = MagicMock()
+    mock_task = MagicMock()
+    mock_progress.add_task.return_value = mock_task
+    size = await get_dir_size('some_dir', progress=mock_progress)
+    assert size == 2048
+
+
+async def test_mogrify_label_pool_second_start_does_not_add_workers(mocker: MockerFixture) -> None:
+    mocker.patch('gendisc.utils.write_spiral_text_png', new_callable=AsyncMock)
+    pool = MogrifyLabelPool(2)
+    await pool.start()
+    workers_after_first = list(pool._workers)  # noqa: SLF001
+    await pool.start()
+    assert pool._workers == workers_after_first  # noqa: SLF001
+    await pool.submit('out/label-once.png', 't', fn_prefix='p-001')
+    await pool.wait_until_finished()
+
+
+async def test_mogrify_label_pool_raises_on_invalid_queue_item() -> None:
+    pool = MogrifyLabelPool(worker_count=1)
+    await pool.start()
+    await pool._queue.put(object())  # noqa: SLF001
+    with pytest.raises(TypeError, match='Unexpected item on mogrify queue'):
+        await pool.wait_until_finished()
+
+
+async def test_directory_splitter_label_status_run_without_mogrify_pool(
+        mocker: MockerFixture) -> None:
+    mock_write_spiral = mocker.patch('gendisc.utils.write_spiral_text_png', new_callable=AsyncMock)
+    mocker.patch('gendisc.utils.shutil.which', return_value='fake-mogrify')
+    mock_proc = MagicMock()
+    mock_proc.communicate = AsyncMock(return_value=(b'.\ndir1\n', b''))
+    mock_proc.returncode = 0
+    mocker.patch('gendisc.utils.asyncio.create_subprocess_exec',
+                 new_callable=AsyncMock,
+                 return_value=mock_proc)
+    mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
+    mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    (mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.write_text
+     ) = AsyncMock()
+    mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.chmod = (
+        AsyncMock())
+    mock_async_path.return_value.__truediv__.return_value.mkdir = AsyncMock()
+    mocker.patch('gendisc.utils.walk', return_value=[('base', [], ['file1'])])
+    mocker.patch('gendisc.utils.isdir', return_value=True)
+    mocker.patch('gendisc.utils.islink', return_value=False)
+    mocker.patch('gendisc.utils.run_sync', new_callable=AsyncMock, return_value=1024)
+    mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
+    mocker.patch('gendisc.utils.get_mounts', new_callable=AsyncMock, return_value=[])
+    mocker.patch('gendisc.utils.Path')
+
+    async def status_run(message: str, awaitable: Awaitable[Any]) -> Any:
+        return await awaitable
+
+    mock_status = MagicMock()
+    mock_status.run = AsyncMock(side_effect=status_run)
+    splitter = DirectorySplitter('test_path',
+                                 'prefix',
+                                 labels=True,
+                                 mogrify_pool=None,
+                                 status_run=mock_status)
+    await splitter.split()
+    mock_write_spiral.assert_awaited_once()
+    run_messages = [str(c[0][0]) for c in mock_status.run.call_args_list if c[0]]
+    assert any('mogrify' in m for m in run_messages)
 
 
 async def test_directory_splitter_split_file_too_large_for_bluray(mocker: MockerFixture,
