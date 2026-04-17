@@ -21,17 +21,23 @@ local utils = import 'utils.libjsonnet';
     tool+: {
       poetry+: {
         dependencies+: {
+          anyio: utils.latestPypiPackageVersionCaret('anyio'),
           jinja2: utils.latestPypiPackageVersionCaret('jinja2'),
           'python-fsutil': utils.latestPypiPackageVersionCaret('python-fsutil'),
-          tqdm: utils.latestPypiPackageVersionCaret('tqdm'),
+          rich: utils.latestPypiPackageVersionCaret('rich'),
           wakepy: utils.latestPypiPackageVersionCaret('wakepy'),
         },
         group+: {
-          dev+: {
+          tests+: {
             dependencies+: {
-              'types-tqdm': utils.latestPypiPackageVersionCaret('types-tqdm'),
+              'pytest-asyncio': utils.latestPypiPackageVersionCaret('pytest-asyncio'),
             },
           },
+        },
+      },
+      pytest+: {
+        ini_options+: {
+          asyncio_mode: 'auto',
         },
       },
     },

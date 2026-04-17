@@ -1,12 +1,11 @@
 """Main command."""
 from __future__ import annotations
 
-from functools import partialmethod
 from pathlib import Path
+import asyncio
 import logging
 
 from bascom import setup_logging
-from tqdm import tqdm
 from wakepy import keep
 import click
 
@@ -28,6 +27,23 @@ from .utils import DirectorySplitter, WriteSpeeds
 __all__ = ('main',)
 
 log = logging.getLogger(__name__)
+
+
+async def _run_split(path: Path, output_dir: Path, drive: Path, preparer: str | None,
+                     publisher: str | None, prefix: str | None, starting_index: int,
+                     write_speeds: WriteSpeeds, delete_command: str, *, cross_fs: bool,
+                     labels: bool) -> None:
+    await DirectorySplitter(path,
+                            prefix or path.name,
+                            cross_fs=cross_fs,
+                            delete_command=delete_command,
+                            drive=drive,
+                            labels=labels,
+                            output_dir=output_dir,
+                            preparer=preparer,
+                            publisher=publisher,
+                            starting_index=starting_index,
+                            write_speeds=write_speeds).split()
 
 
 @click.command(context_settings={'help_option_names': ('-h', '--help')})
@@ -93,30 +109,53 @@ def main(path: Path,
                           'propagate': False,
                       },
                   })
-    if debug:
-        tqdm.__init__ = partialmethod(  # type: ignore[assignment,method-assign] # ty: ignore[invalid-assignment]
-            tqdm.__init__,
-            disable=True)
     output_dir_p = Path(output_dir).resolve()
     output_dir_p.mkdir(parents=True, exist_ok=True)
     with keep.running():
-        DirectorySplitter(path,
-                          prefix or path.name,
-                          cross_fs=cross_fs,
-                          delete_command='rm -rf' if delete else 'trash',
-                          drive=drive,
-                          labels=not no_labels,
-                          output_dir=output_dir_p,
-                          preparer=preparer,
-                          publisher=publisher,
-                          starting_index=starting_index,
-                          write_speeds=WriteSpeeds(cd=cd_write_speed,
-                                                   dvd=dvd_write_speed,
-                                                   dvd_dl=dvd_dl_write_speed,
-                                                   bd=bd_write_speed,
-                                                   bd_dl=bd_dl_write_speed,
-                                                   bd_tl=bd_tl_write_speed,
-                                                   bd_xl=bd_xl_write_speed)).split()
+        asyncio.run(
+            _run_split(path,
+                       output_dir_p,
+                       drive,
+                       preparer,
+                       publisher,
+                       prefix,
+                       starting_index,
+                       WriteSpeeds(cd=cd_write_speed,
+                                   dvd=dvd_write_speed,
+                                   dvd_dl=dvd_dl_write_speed,
+                                   bd=bd_write_speed,
+                                   bd_dl=bd_dl_write_speed,
+                                   bd_tl=bd_tl_write_speed,
+                                   bd_xl=bd_xl_write_speed),
+                       'rm -rf' if delete else 'trash',
+                       cross_fs=cross_fs,
+                       labels=not no_labels))
+
+
+async def _run_genlabel(output: Path, text: str, width: int, height: int | None,
+                        view_box: tuple[int, int, int, int] | None, dpi: int, font_size: int,
+                        center: Point | None, start_radius: int, space_per_loop: float,
+                        start_theta: float, end_theta: float, theta_step: float, *, keep_svg: bool,
+                        svg: bool) -> None:
+    if svg:
+        await write_spiral_text_svg(output.with_suffix('.svg'), text, width, height, view_box,
+                                    font_size, center, start_radius, space_per_loop, start_theta,
+                                    end_theta, theta_step)
+    else:
+        await write_spiral_text_png(output,
+                                    text,
+                                    width,
+                                    height,
+                                    view_box,
+                                    dpi,
+                                    font_size,
+                                    center,
+                                    start_radius,
+                                    space_per_loop,
+                                    start_theta,
+                                    end_theta,
+                                    theta_step,
+                                    keep=keep_svg)
 
 
 @click.command(context_settings={'help_option_names': ('-h', '--help')})
@@ -178,23 +217,19 @@ def genlabel_main(text: tuple[str, ...],
         'handlers': ('console',),
         'propagate': False,
     }})
-    if svg:
-        write_spiral_text_svg(output.with_suffix('.svg'), ' '.join(text), width, height, view_box,
-                              font_size,
-                              Point(*center) if center else None, start_radius, space_per_loop,
-                              start_theta, end_theta, theta_step)
-    else:
-        write_spiral_text_png(output,
-                              ' '.join(text),
-                              width,
-                              height,
-                              view_box,
-                              dpi,
-                              font_size,
-                              Point(*center) if center else None,
-                              start_radius,
-                              space_per_loop,
-                              start_theta,
-                              end_theta,
-                              theta_step,
-                              keep=keep_svg)
+    asyncio.run(
+        _run_genlabel(output,
+                      ' '.join(text),
+                      width,
+                      height,
+                      view_box,
+                      dpi,
+                      font_size,
+                      Point(*center) if center else None,
+                      start_radius,
+                      space_per_loop,
+                      start_theta,
+                      end_theta,
+                      theta_step,
+                      keep_svg=keep_svg,
+                      svg=svg))

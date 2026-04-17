@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from shlex import quote
 from typing import (
     TYPE_CHECKING,
@@ -10,18 +9,19 @@ from typing import (
     SupportsIndex,
     TypeAlias,
 )
+import asyncio
 import logging
 import math
 import shutil
-import subprocess as sp
 
+from anyio import Path as AsyncPath
 import jinja2
 
 if TYPE_CHECKING:
     import os
 
 __all__ = ('MogrifyNotFound', 'Point', 'create_spiral_path', 'create_spiral_text_svg',
-           'write_spiral_text_png', 'write_spiral_text_svg')
+           'line_intersection', 'write_spiral_text_png', 'write_spiral_text_svg')
 
 log = logging.getLogger(__name__)
 _jinja_env = jinja2.Environment(
@@ -41,19 +41,19 @@ class Point:
     """Y coordinate."""
 
 
-def _line_intersection(m1: float, b1: float, m2: float, b2: float) -> Point:
+def line_intersection(m1: float, b1: float, m2: float, b2: float) -> Point:
     """
     Find the intersection of two lines.
 
     Parameters
     ----------
-    m1 : int
+    m1 : float
         Slope of the first line.
-    b1 : int
+    b1 : float
         Y-intercept of the first line.
-    m2 : int
+    m2 : float
         Slope of the second line.
-    b2 : int
+    b2 : float
         Y-intercept of the second line.
 
     Returns
@@ -109,7 +109,7 @@ def create_spiral_path(center: Point | None = None,
                        end_theta: _SupportsFloatOrIndex = DEFAULT_END_THETA,
                        theta_step: _SupportsFloatOrIndex = DEFAULT_THETA_STEP) -> str:
     """
-    Get a path string for a spiral in a SVG file.
+    Get a path string for a spiral in an SVG file.
 
     Defaults to creating a spiral that starts at the outside and goes inwards.
 
@@ -117,8 +117,9 @@ def create_spiral_path(center: Point | None = None,
 
     Parameters
     ----------
-    center : Point
-        The center of the spiral.
+    center : Point | None
+        The center of the spiral. If ``None``, it defaults to
+        ``Point(DEFAULT_WIDTH_HEIGHT, DEFAULT_WIDTH_HEIGHT)``.
     start_radius : float
         The starting radius of the spiral.
     space_per_loop : float
@@ -175,7 +176,7 @@ def create_spiral_path(center: Point | None = None,
                      (b * math.cos(new_theta) - a_plus_b_theta * math.sin(new_theta)))
         old_intercept = -(old_slope * old_r * math.cos(old_theta) - old_r * math.sin(old_theta))
         new_intercept = -(new_slope * new_r * math.cos(new_theta) - new_r * math.sin(new_theta))
-        control_point = _line_intersection(old_slope, old_intercept, new_slope, new_intercept)
+        control_point = line_intersection(old_slope, old_intercept, new_slope, new_intercept)
         # Offset the control point by the center offset.
         control_point.x += center.x
         control_point.y += center.y
@@ -201,18 +202,18 @@ def create_spiral_text_svg(text: str,
 
     Parameters
     ----------
-    text: str
+    text : str
         The text to put in the spiral.
     width : int
         The width of the SVG.
-    height : int
-        The height of the SVG.
-    view_box : str
-        The view box of the SVG.
+    height : int | None
+        The height of the SVG. If ``None``, ``width`` is used.
+    view_box : tuple[int, int, int, int] | None
+        The view box of the SVG. If ``None``, it defaults to ``(0, 0, width * 2, height * 2)``.
     font_size : int
         The font size of the text in the SVG in pixels.
-    center : Point
-        The center of the spiral. If not specified, it will be set to (width, width).
+    center : Point | None
+        The center of the spiral. If ``None``, it defaults to ``Point(width, width)``.
     start_radius : float
         The starting radius of the spiral.
     space_per_loop : float
@@ -243,18 +244,18 @@ def create_spiral_text_svg(text: str,
                                                           width=width).strip()
 
 
-def write_spiral_text_svg(filename: str | os.PathLike[str],
-                          text: str,
-                          width: int = DEFAULT_WIDTH_HEIGHT,
-                          height: int | None = None,
-                          view_box: tuple[int, int, int, int] | None = None,
-                          font_size: int = DEFAULT_FONT_SIZE,
-                          center: Point | None = None,
-                          start_radius: float = DEFAULT_START_RADIUS,
-                          space_per_loop: float = DEFAULT_SPACE_PER_LOOP,
-                          start_theta: _SupportsFloatOrIndex = DEFAULT_START_THETA,
-                          end_theta: _SupportsFloatOrIndex = DEFAULT_END_THETA,
-                          theta_step: _SupportsFloatOrIndex = DEFAULT_THETA_STEP) -> None:
+async def write_spiral_text_svg(filename: str | os.PathLike[str],
+                                text: str,
+                                width: int = DEFAULT_WIDTH_HEIGHT,
+                                height: int | None = None,
+                                view_box: tuple[int, int, int, int] | None = None,
+                                font_size: int = DEFAULT_FONT_SIZE,
+                                center: Point | None = None,
+                                start_radius: float = DEFAULT_START_RADIUS,
+                                space_per_loop: float = DEFAULT_SPACE_PER_LOOP,
+                                start_theta: _SupportsFloatOrIndex = DEFAULT_START_THETA,
+                                end_theta: _SupportsFloatOrIndex = DEFAULT_END_THETA,
+                                theta_step: _SupportsFloatOrIndex = DEFAULT_THETA_STEP) -> None:
     """
     Write a spiral text SVG string to a file.
 
@@ -264,19 +265,19 @@ def write_spiral_text_svg(filename: str | os.PathLike[str],
     ----------
     filename : str | os.PathLike[str]
         The filename to write the SVG to.
-    text: str
+    text : str
         The text to put in the spiral.
     width : int
         The width of the SVG.
-    height : int
-        The height of the SVG.
+    height : int | None
+        The height of the SVG. If ``None``, ``width`` is used.
     view_box : tuple[int, int, int, int] | None
         The view box of the SVG. If not specified, it will be set to
         ``(0, 0, width * 2, height * 2)``.
     font_size : int
         The font size of the text in the SVG in pixels.
-    center : Point
-        The center of the spiral.
+    center : Point | None
+        The center of the spiral. If ``None``, it defaults to ``Point(width, width)``.
     start_radius : float
         The starting radius of the spiral.
     space_per_loop : float
@@ -288,11 +289,10 @@ def write_spiral_text_svg(filename: str | os.PathLike[str],
     theta_step : float
         The step size of the angle in degrees.
     """
-    filename = Path(filename)
     spiral_svg = create_spiral_text_svg(text, width, height or width, view_box, font_size, center,
                                         start_radius, space_per_loop, start_theta, end_theta,
                                         theta_step)
-    filename.write_text(f'{spiral_svg}\n', encoding='utf-8')
+    await AsyncPath(filename).write_text(f'{spiral_svg}\n', encoding='utf-8')
 
 
 class MogrifyNotFound(FileNotFoundError):
@@ -302,21 +302,21 @@ class MogrifyNotFound(FileNotFoundError):
         super().__init__(msg)
 
 
-def write_spiral_text_png(filename: str | os.PathLike[str],
-                          text: str,
-                          width: int = DEFAULT_WIDTH_HEIGHT,
-                          height: int | None = None,
-                          view_box: tuple[int, int, int, int] | None = None,
-                          dpi: int = DEFAULT_DPI,
-                          font_size: int = DEFAULT_FONT_SIZE,
-                          center: Point | None = None,
-                          start_radius: float = DEFAULT_START_RADIUS,
-                          space_per_loop: float = DEFAULT_SPACE_PER_LOOP,
-                          start_theta: _SupportsFloatOrIndex = DEFAULT_START_THETA,
-                          end_theta: _SupportsFloatOrIndex = DEFAULT_END_THETA,
-                          theta_step: _SupportsFloatOrIndex = DEFAULT_THETA_STEP,
-                          *,
-                          keep: bool = False) -> None:
+async def write_spiral_text_png(filename: str | os.PathLike[str],
+                                text: str,
+                                width: int = DEFAULT_WIDTH_HEIGHT,
+                                height: int | None = None,
+                                view_box: tuple[int, int, int, int] | None = None,
+                                dpi: int = DEFAULT_DPI,
+                                font_size: int = DEFAULT_FONT_SIZE,
+                                center: Point | None = None,
+                                start_radius: float = DEFAULT_START_RADIUS,
+                                space_per_loop: float = DEFAULT_SPACE_PER_LOOP,
+                                start_theta: _SupportsFloatOrIndex = DEFAULT_START_THETA,
+                                end_theta: _SupportsFloatOrIndex = DEFAULT_END_THETA,
+                                theta_step: _SupportsFloatOrIndex = DEFAULT_THETA_STEP,
+                                *,
+                                keep: bool = False) -> None:
     """
     Write a spiral text SVG string to a file.
 
@@ -328,19 +328,21 @@ def write_spiral_text_png(filename: str | os.PathLike[str],
     ----------
     filename : str | os.PathLike[str]
         The filename to write the PNG to.
-    text: str
+    text : str
         The text to put in the spiral.
     width : int
         The width of the SVG.
-    height : int
-        The height of the SVG.
+    height : int | None
+        The height of the SVG. If ``None``, ``width`` is used.
     view_box : tuple[int, int, int, int] | None
         The view box of the SVG. If not specified, it will be set to
         ``(0, 0, width * 2, height * 2)``.
+    dpi : int
+        Dots per inch used when rasterising the SVG.
     font_size : int
         The font size of the text in the SVG in pixels.
-    center : Point
-        The center of the spiral.
+    center : Point | None
+        The center of the spiral. If ``None``, it defaults to ``Point(width, width)``.
     start_radius : float
         The starting radius of the spiral.
     space_per_loop : float
@@ -360,23 +362,29 @@ def write_spiral_text_png(filename: str | os.PathLike[str],
         If ``mogrify`` is not found in ``PATH``.
     FileNotFoundError
         If the PNG file could not be created.
+    RuntimeError
+        If ``mogrify`` exits with a non-zero status.
     """
     if not (mogrify := shutil.which('mogrify')):
         raise MogrifyNotFound
-    log.debug('Writing spiral text image to %s. Be patient!', filename)
-    filename = Path(filename)
-    svg_file = filename.with_suffix('.svg')
-    write_spiral_text_svg(svg_file, text, width, height, view_box, font_size, center, start_radius,
-                          space_per_loop, start_theta, end_theta, theta_step)
+    log.debug('Writing spiral text image to `%s`. Be patient!', filename)
+    file_path = AsyncPath(filename)
+    svg_file = file_path.with_suffix('.svg')
+    await write_spiral_text_svg(svg_file, text, width, height, view_box, font_size, center,
+                                start_radius, space_per_loop, start_theta, end_theta, theta_step)
     size_args = ('-density', str(dpi), '-gravity', 'center', '-resize', '2800x2800', '-extent',
                  '2835x2835')
     cmd: tuple[str, ...] = (mogrify, '-comment', 'gendisc', '-colorspace', 'sRGB', '-units',
                             'PixelsPerInch', *size_args, '-background', 'none', '-format', 'png',
                             str(svg_file))
     log.debug('Running: %s', ' '.join(quote(x) for x in cmd))
-    sp.run(cmd, check=True)
-    if not filename.exists():
-        msg = f'Failed to create {filename}.'
+    proc = await asyncio.create_subprocess_exec(*cmd)
+    return_code = await proc.wait()
+    if return_code != 0:
+        msg = f'mogrify exited with code {return_code}.'
+        raise RuntimeError(msg)
+    if not await file_path.exists():
+        msg = f'Failed to create {file_path}.'
         raise FileNotFoundError(msg)
     if not keep:
-        svg_file.unlink()
+        await svg_file.unlink()

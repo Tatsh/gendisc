@@ -9,10 +9,36 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+### Added
+
+- New public API:
+  - `gendisc.genlabel.line_intersection` (promoted from the private `_line_intersection` helper).
+  - `gendisc.utils.get_mounts`, `gendisc.utils.reload_mounts`, and
+    `gendisc.utils.clear_mounts_cache` for inspecting and managing the cached mount table.
+  - Read-only `sets` property on `gendisc.utils.DirectorySplitter` exposing the split result.
+
+### Changed
+
+- Public API is now asynchronous. The following are now `async` coroutines and must be awaited:
+  - `gendisc.genlabel.write_spiral_text_svg` and `gendisc.genlabel.write_spiral_text_png`.
+  - `gendisc.utils.DirectorySplitter.split`.
+  - `gendisc.utils.get_dir_size`.
+  - `gendisc.utils.is_cross_fs`.
+- The `gendisc` and `gendisc-genlabel` CLI entry points remain synchronous but now size
+  directories concurrently via `asyncio.gather` with a bounded semaphore.
+- Progress reporting switched from `tqdm` to `rich.progress`.
+
+### Removed
+
+- `gendisc.utils.LazyMounts` (replaced by `get_mounts` / `reload_mounts` /
+  `clear_mounts_cache`).
+
 ### Fixed
 
 - Fix label generation producing incorrect common path prefix by replacing `os.path.commonprefix`
   (character-based) with `os.path.commonpath` (path-aware) in `DirectorySplitter`.
+- The buggy-filesystem warning for CIFS mounts with the `unix` option now fires once per unique
+  path instead of once per process.
 
 ## [0.0.14] - 2025-05-26
 
