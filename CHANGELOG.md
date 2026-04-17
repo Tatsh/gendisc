@@ -9,6 +9,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+## [0.1.0] - 2026-04-17
+
 ### Added
 
 - New public API:
@@ -169,7 +171,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 First version.
 
-[unreleased]: https://github.com/Tatsh/gendisc/compare/v0.0.14...HEAD
+[unreleased]: https://github.com/Tatsh/gendisc/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Tatsh/gendisc/compare/v0.0.14...v0.1.0
 [0.0.14]: https://github.com/Tatsh/gendisc/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/Tatsh/gendisc/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/Tatsh/gendisc/compare/v0.0.11...v0.0.12

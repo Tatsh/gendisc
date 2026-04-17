@@ -30,5 +30,5 @@ platforms:
 source-code: 'https://github.com/Tatsh/gendisc'
 summary: 'Generate disk file path lists for mkisofs.'
 title: 'gendisc'
-version: '0.0.14'
+version: '0.1.0'
 website: 'https://tatsh.github.io/gendisc/'

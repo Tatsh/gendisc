@@ -5,7 +5,7 @@ local utils = import 'utils.libjsonnet';
   description: 'Generate disk file path lists for mkisofs.',
   keywords: ['backup', 'iso', 'media', 'optical'],
   project_name: 'gendisc',
-  version: '0.0.14',
+  version: '0.1.0',
   want_main: true,
   want_flatpak: true,
   publishing+: { flathub: 'sh.tat.gendisc' },
