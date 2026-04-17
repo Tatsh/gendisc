@@ -1,5 +1,6 @@
 anchore
 Ångström
+anyio
 appdir
 appimage
 appinfo
