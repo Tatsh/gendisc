@@ -4,7 +4,7 @@ requires = ["hatchling"]
 
 [dependency-groups]
 dev = [
-  "commitizen>=4.13.9",
+  "commitizen>=4.13.10",
   "cz-path>=0.0.6",
   "mypy>=1.20.0",
   "ruff>=0.15.10",
@@ -16,7 +16,7 @@ docs = [
   "doc8>=2.0.0",
   "docutils<0.22",
   "enum-tools[sphinx]>=0.13.0",
-  "esbonio>=1.1.0",
+  "esbonio>=2.0.0",
   "numpydoc>=1.10.0",
   "restructuredtext-lint>=2.0.2",
   "sphinx-click>=6.2.0",
@@ -52,7 +52,7 @@ dependencies = [
   "click>=8.3.2",
   "jinja2>=3.1.6",
   "python-fsutil>=0.16.1",
-  "rich>=14.3.3",
+  "rich>=15.0.0",
   "typing-extensions>=4.15.0",
   "wakepy>=1.0.0",
 ]
@@ -101,10 +101,10 @@ exclude_also = ["if TYPE_CHECKING:"]
 omit = [
   "conftest.py",
   "gendisc/__main__.py",
-  "gendisc/typing.py",
   "tests.py",
   "tests/*/test_*.py",
   "tests/test_*.py",
+  "gendisc/typing.py",
 ]
 show_missing = true
 
@@ -113,10 +113,10 @@ branch = true
 omit = [
   "conftest.py",
   "gendisc/__main__.py",
-  "gendisc/typing.py",
   "tests.py",
   "tests/*/test_*.py",
   "tests/test_*.py",
+  "gendisc/typing.py",
 ]
 
 [tool.doc8]

@@ -1,4 +1,5 @@
 anchore
+Ångström
 anyio
 appdir
 appimage
@@ -109,7 +110,9 @@ pypa
 pypi
 pyproject
 pytest
+pythonhosted
 regen
+ripgreprc
 rstcheck
 schemafile
 sdist
@@ -148,4 +151,3 @@ xcrun
 yapf
 yapfignore
 yarnrc
-Ångström
