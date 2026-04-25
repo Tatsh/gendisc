@@ -183,19 +183,17 @@ def test_create_spiral_text_svg_custom_args(mocker: MockerFixture) -> None:
     start_theta = -100
     end_theta = 100
     theta_step = 15
-    svg = create_spiral_text_svg(
-        text,
-        width=width,
-        height=height,
-        view_box=view_box,
-        font_size=font_size,
-        center=center,
-        start_radius=start_radius,
-        space_per_loop=space_per_loop,
-        start_theta=start_theta,
-        end_theta=end_theta,
-        theta_step=theta_step,
-    )
+    svg = create_spiral_text_svg(text,
+                                 width=width,
+                                 height=height,
+                                 view_box=view_box,
+                                 font_size=font_size,
+                                 center=center,
+                                 start_radius=start_radius,
+                                 space_per_loop=space_per_loop,
+                                 start_theta=start_theta,
+                                 end_theta=end_theta,
+                                 theta_step=theta_step)
     assert f'width="{width}"' in svg
     assert f'height="{height}"' in svg
     assert f'font: {font_size}px' in svg
@@ -233,28 +231,24 @@ def test_create_spiral_path_defaults() -> None:
 
 def test_create_spiral_path_custom_args() -> None:
     center = Point(10, 20)
-    path = create_spiral_path(
-        center=center,
-        start_radius=2,
-        space_per_loop=8,
-        start_theta=-100,
-        end_theta=100,
-        theta_step=10,
-    )
+    path = create_spiral_path(center=center,
+                              start_radius=2,
+                              space_per_loop=8,
+                              start_theta=-100,
+                              end_theta=100,
+                              theta_step=10)
     assert path.startswith('M ')
     assert 'Q' in path
     assert isinstance(path, str)
 
 
 def test_create_spiral_path_looping_and_path_content() -> None:
-    path = create_spiral_path(
-        center=Point(0, 0),
-        start_radius=1,
-        space_per_loop=2,
-        start_theta=-60,
-        end_theta=60,
-        theta_step=30,
-    )
+    path = create_spiral_path(center=Point(0, 0),
+                              start_radius=1,
+                              space_per_loop=2,
+                              start_theta=-60,
+                              end_theta=60,
+                              theta_step=30)
     assert path.startswith('M ')
     assert 'Q' in path
     assert '1.0,0.0' in path

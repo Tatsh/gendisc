@@ -601,7 +601,7 @@ class DirectorySplitter:
         pl_contents = '\n'.join(self._current_set) + '\n'
         tasks: list[Coroutine[Any, Any, object]] = [
             pl_file.write_text(pl_contents, encoding='utf-8'),
-            sh_file.write_text(sh_contents, encoding='utf-8'),
+            sh_file.write_text(sh_contents, encoding='utf-8')
         ]
         if self._has_mogrify:
             log.debug('Creating label for `%s`.', orig_vol_id)

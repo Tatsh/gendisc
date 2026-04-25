@@ -62,16 +62,13 @@ def _run_async_cli(coro: Coroutine[Any, Any, None]) -> None:
         asyncio.run(coro)
     except KeyboardInterrupt:
         try:
-            click.echo(
-                '\nInterrupt received; shutting down (partial results may be incomplete).',
-                err=True,
-            )
+            click.echo('\nInterrupt received; shutting down (partial results may be incomplete).',
+                       err=True)
         except KeyboardInterrupt:
             click.echo(
                 '\nRepeated interrupt: exiting without full cleanup; '
                 'outputs may be inconsistent or corrupted.',
-                err=True,
-            )
+                err=True)
         raise SystemExit(130) from None
 
 
@@ -256,7 +253,7 @@ def main(path: Path,
                       'gendisc': {},
                       **({
                           'wakepy': {}
-                      } if debug else {}),
+                      } if debug else {})
                   },
                   root={'level': 'DEBUG' if debug else 'INFO'})
     output_dir_p = Path(output_dir).resolve()
@@ -366,9 +363,7 @@ def genlabel_main(text: tuple[str, ...],
                   keep_svg: bool = False,
                   svg: bool = False) -> None:
     """Generate an image intended for printing on disc consisting of text in a spiral."""
-    setup_logging(debug=debug, loggers={
-        'gendisc': {},
-    })
+    setup_logging(debug=debug, loggers={'gendisc': {}})
     _run_async_cli(
         _run_genlabel(output,
                       ' '.join(text),

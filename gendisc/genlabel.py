@@ -3,12 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from shlex import quote
-from typing import (
-    TYPE_CHECKING,
-    SupportsFloat,
-    SupportsIndex,
-    TypeAlias,
-)
+from typing import TYPE_CHECKING, SupportsFloat, SupportsIndex, TypeAlias
 import asyncio
 import logging
 import math
