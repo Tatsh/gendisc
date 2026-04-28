@@ -9,6 +9,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+### Changed
+
+- `gendisc.utils.DirectorySplitter.sets` now returns
+  `tuple[tuple[str, ...], ...]` instead of `list[list[str]]`, so the property no longer exposes the
+  splitter's internal state to mutation.
+- `gendisc.utils.get_mounts` and `gendisc.utils.reload_mounts` now return `tuple[str, ...]`
+  instead of `list[str]` and the underlying mount cache is stored as a tuple, preventing callers
+  from mutating the cached value.
+
 ## [0.1.0] - 2026-04-17
 
 ### Added

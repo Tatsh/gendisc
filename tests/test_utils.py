@@ -209,12 +209,12 @@ async def test_get_mounts_reads_and_caches(mocker: MockerFixture) -> None:
     mock_read_text = AsyncMock(return_value='/dev/sda1 / ext4 rw 0 0\n/dev/sdb1 /mnt ext4 rw 0 0')
     mocker.patch('gendisc.utils.AsyncPath.read_text', mock_read_text)
     mounts = await get_mounts()
-    assert mounts == ['/', '/mnt']
+    assert mounts == ('/', '/mnt')
     mock_read_text.assert_called_once()
     # Second call should hit the cache: AsyncPath.read_text must not be called again.
     mock_read_text.reset_mock()
     mounts2 = await get_mounts()
-    assert mounts2 == ['/', '/mnt']
+    assert mounts2 == ('/', '/mnt')
     mock_read_text.assert_not_called()
 
 
@@ -228,12 +228,12 @@ async def test_reload_mounts_bypasses_cache(mocker: MockerFixture) -> None:
                  new_callable=AsyncMock,
                  return_value='/dev/sda1 /new ext4 rw 0 0')
     mounts = await reload_mounts()
-    assert mounts == ['/new']
+    assert mounts == ('/new',)
 
 
 def test_directory_splitter_sets_is_empty_before_split(mocker_fs: None) -> None:
     splitter = DirectorySplitter('test_path', 'prefix')
-    assert splitter.sets == []
+    assert splitter.sets == ()
 
 
 async def test_directory_splitter_split(mocker: MockerFixture, mocker_fs: None) -> None:
@@ -605,7 +605,7 @@ async def test_directory_splitter_skip_files_that_raise_oserror(mocker: MockerFi
     splitter = DirectorySplitter('test_path', 'prefix', labels=True)
     await splitter.split()
     # An entry whose size cannot be determined is skipped entirely, so no set is produced.
-    assert splitter.sets == []
+    assert splitter.sets == ()
 
 
 async def test_directory_splitter_find_nonzero_exit_raises(mocker: MockerFixture,

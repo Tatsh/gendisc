@@ -206,17 +206,17 @@ async def get_dir_size(path: str, *, progress: SizeProgress | None = None) -> in
     return size
 
 
-_MOUNTS_CACHE: list[str] | None = None
+_MOUNTS_CACHE: tuple[str, ...] | None = None
 _MOUNTS_LOCK = asyncio.Lock()
 
 
-async def get_mounts() -> list[str]:
+async def get_mounts() -> tuple[str, ...]:
     """
     Read mount points from ``/proc/mounts``.
 
     Returns
     -------
-    list[str]
+    tuple[str, ...]
         Mount point paths. Cached after the first call; call :py:func:`reload_mounts`
         to refresh.
     """
@@ -227,13 +227,13 @@ async def get_mounts() -> list[str]:
         return _MOUNTS_CACHE
 
 
-async def reload_mounts() -> list[str]:
+async def reload_mounts() -> tuple[str, ...]:
     """
     Reload mount points from ``/proc/mounts``, bypassing the cache.
 
     Returns
     -------
-    list[str]
+    tuple[str, ...]
         Mount point paths.
     """
     global _MOUNTS_CACHE  # noqa: PLW0603
@@ -249,9 +249,9 @@ async def clear_mounts_cache() -> None:
         _MOUNTS_CACHE = None
 
 
-async def _read_mounts() -> list[str]:
+async def _read_mounts() -> tuple[str, ...]:
     text = await AsyncPath('/proc/mounts').read_text(encoding='utf-8')
-    return [x.split()[1] for x in text.splitlines()]
+    return tuple(x.split()[1] for x in text.splitlines())
 
 
 ISO_MAX_VOLID_LENGTH = 32
@@ -534,9 +534,9 @@ class DirectorySplitter:
         self._publisher = publisher
 
     @property
-    def sets(self) -> list[list[str]]:
-        """Sets of entries produced by :py:meth:`split`. Each inner list fits on one disc."""
-        return self._sets
+    def sets(self) -> tuple[tuple[str, ...], ...]:
+        """Sets of entries produced by :py:meth:`split`. Each inner tuple fits on one disc."""
+        return tuple(tuple(s) for s in self._sets)
 
     def _reset(self) -> None:
         self._target_size = BLURAY_TRIPLE_LAYER_SIZE_BYTES_ADJUSTED
