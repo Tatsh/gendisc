@@ -9,6 +9,7 @@ local utils = import 'utils.libjsonnet';
   want_main: true,
   want_flatpak: true,
   publishing+: { flathub: 'sh.tat.gendisc' },
+  security_policy_supported_versions: { '0.1.x': ':white_check_mark:' },
   pyinstaller+: {
     extra_args: ['--add-data', '"${project_name}/templates:${project_name}/templates"'],
   },
