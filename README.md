@@ -6,7 +6,7 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/gendisc)](https://pypi.org/project/gendisc/)
 [![GitHub tag (with filter)](https://img.shields.io/github/v/tag/Tatsh/gendisc)](https://github.com/Tatsh/gendisc/tags)
 [![License](https://img.shields.io/github/license/Tatsh/gendisc)](https://github.com/Tatsh/gendisc/blob/master/LICENSE.txt)
-[![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/Tatsh/gendisc/v0.1.0/master)](https://github.com/Tatsh/gendisc/compare/v0.1.0...master)
+[![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/Tatsh/gendisc/v0.1.1/master)](https://github.com/Tatsh/gendisc/compare/v0.1.1...master)
 [![CodeQL](https://github.com/Tatsh/gendisc/actions/workflows/codeql.yml/badge.svg)](https://github.com/Tatsh/gendisc/actions/workflows/codeql.yml)
 [![QA](https://github.com/Tatsh/gendisc/actions/workflows/qa.yml/badge.svg)](https://github.com/Tatsh/gendisc/actions/workflows/qa.yml)
 [![Tests](https://github.com/Tatsh/gendisc/actions/workflows/tests.yml/badge.svg)](https://github.com/Tatsh/gendisc/actions/workflows/tests.yml)

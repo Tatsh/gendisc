@@ -9,6 +9,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [unreleased]
 
+## [0.1.1] - 2026-05-08
+
 ### Changed
 
 - `gendisc.utils.DirectorySplitter.sets` now returns
@@ -180,7 +182,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 First version.
 
-[unreleased]: https://github.com/Tatsh/gendisc/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/Tatsh/gendisc/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Tatsh/gendisc/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Tatsh/gendisc/compare/v0.0.14...v0.1.0
 [0.0.14]: https://github.com/Tatsh/gendisc/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/Tatsh/gendisc/compare/v0.0.12...v0.0.13
