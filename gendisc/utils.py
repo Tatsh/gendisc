@@ -472,18 +472,41 @@ class MogrifyLabelPool:
         self._workers.clear()
         self._started = False
 
+    @staticmethod
+    async def _handle_raw_item(raw: _MogrifyJob | object) -> bool:
+        """
+        Process one item pulled from the queue.
+
+        Parameters
+        ----------
+        raw : _MogrifyJob | object
+            A :py:class:`_MogrifyJob` to rasterise, or the stop sentinel.
+
+        Returns
+        -------
+        bool
+            ``True`` if the stop sentinel was received and the worker should exit.
+
+        Raises
+        ------
+        TypeError
+            If the item is neither a :py:class:`_MogrifyJob` nor the stop sentinel.
+        """
+        if raw is _MOGRIFY_STOP:
+            return True
+        if not isinstance(raw, _MogrifyJob):
+            msg = 'Unexpected item on mogrify queue.'
+            raise TypeError(msg)
+        log.info('Running mogrify for disc label `%s`.', raw.fn_prefix)
+        await write_spiral_text_png(raw.label_path, raw.spiral_text)
+        return False
+
     async def _worker_loop(self) -> None:
         while True:
             raw = await self._queue.get()
             try:
-                if raw is _MOGRIFY_STOP:
+                if await self._handle_raw_item(raw):
                     return
-                if not isinstance(raw, _MogrifyJob):
-                    msg = 'Unexpected item on mogrify queue.'
-                    raise TypeError(msg)
-                job = raw
-                log.info('Running mogrify for disc label `%s`.', job.fn_prefix)
-                await write_spiral_text_png(job.label_path, job.spiral_text)
             finally:
                 self._queue.task_done()
 
