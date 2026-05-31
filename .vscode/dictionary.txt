@@ -86,7 +86,6 @@ mypy
 namedtuples
 norecursedirs
 notarytool
-npmjs
 numpy
 onefile
 oneline
@@ -96,6 +95,7 @@ pavelzw
 pipx
 plistlib
 popd
+preapproved
 proc
 prodvers
 pushd
@@ -138,6 +138,8 @@ tryfirst
 ubyte
 udisksctl
 udvare
+undraft
+undrafted
 vendored
 venv
 vers
@@ -146,6 +148,7 @@ volid
 wakepy
 wiswa
 wiswa's
+worktree
 xcrun
 yapf
 yapfignore
