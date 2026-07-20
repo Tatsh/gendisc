@@ -66,7 +66,7 @@ def path_join(a: str, b: str) -> str:
     str
         The joined path.
     """
-    return os.path.join(a, b)  # noqa: PTH118
+    return os.path.join(a, b)  # ruff:ignore[os-path-join]
 
 
 _STAT_CONCURRENCY = 64
@@ -123,7 +123,8 @@ async def _file_size(filepath: str,
             log.debug('Getting file size for `%s`.', filepath)
             return await run_sync(get_file_size, filepath)
         except OSError:
-            if isdir(filepath):  # noqa: ASYNC240, PTH112
+            if isdir(
+                    filepath):  # ruff:ignore[blocking-path-method-in-async-function, os-path-isdir]
                 # On cifs with 'unix' option, directories get reported as files from walk().
                 _warn_buggy_fs_once(filepath)
                 return await get_dir_size(filepath, progress=progress)
@@ -151,7 +152,7 @@ def _count_dir_files(path: str) -> int:
     """
     return sum(
         sum(1 for filename in filenames
-            if not islink(path_join(basepath, filename)))  # noqa: PTH114
+            if not islink(path_join(basepath, filename)))  # ruff:ignore[os-path-islink]
         for basepath, _, filenames in walk(path))
 
 
@@ -178,7 +179,7 @@ async def get_dir_size(path: str, *, progress: SizeProgress | None = None) -> in
     NotADirectoryError
         If ``path`` is not a directory.
     """
-    if not isdir(path):  # noqa: ASYNC240, PTH112
+    if not isdir(path):  # ruff:ignore[blocking-path-method-in-async-function, os-path-isdir]
         raise NotADirectoryError
     size = 0
     semaphore = asyncio.Semaphore(_STAT_CONCURRENCY)
@@ -194,7 +195,8 @@ async def get_dir_size(path: str, *, progress: SizeProgress | None = None) -> in
             continue
         filepaths = [
             path_join(basepath, filename) for filename in filenames
-            if not islink(path_join(basepath, filename))  # noqa: ASYNC240, PTH114
+            if not islink(path_join(basepath, filename)
+                          )  # ruff:ignore[blocking-path-method-in-async-function, os-path-islink]
         ]
         if not filepaths:
             continue
@@ -220,7 +222,7 @@ async def get_mounts() -> tuple[str, ...]:
         Mount point paths. Cached after the first call; call :py:func:`reload_mounts`
         to refresh.
     """
-    global _MOUNTS_CACHE  # noqa: PLW0603
+    global _MOUNTS_CACHE  # ruff:ignore[global-statement]
     async with _MOUNTS_LOCK:
         if _MOUNTS_CACHE is None:
             _MOUNTS_CACHE = await _read_mounts()
@@ -236,7 +238,7 @@ async def reload_mounts() -> tuple[str, ...]:
     tuple[str, ...]
         Mount point paths.
     """
-    global _MOUNTS_CACHE  # noqa: PLW0603
+    global _MOUNTS_CACHE  # ruff:ignore[global-statement]
     async with _MOUNTS_LOCK:
         _MOUNTS_CACHE = await _read_mounts()
         return _MOUNTS_CACHE
@@ -244,7 +246,7 @@ async def reload_mounts() -> tuple[str, ...]:
 
 async def clear_mounts_cache() -> None:
     """Drop the cached mount points so the next :py:func:`get_mounts` call re-reads them."""
-    global _MOUNTS_CACHE  # noqa: PLW0603
+    global _MOUNTS_CACHE  # ruff:ignore[global-statement]
     async with _MOUNTS_LOCK:
         _MOUNTS_CACHE = None
 
@@ -571,7 +573,7 @@ class DirectorySplitter:
         self._reset()
         self._next_total = self._size
 
-    async def _append_set(self) -> None:  # noqa: PLR0914
+    async def _append_set(self) -> None:  # ruff:ignore[too-many-locals]
         if not self._current_set:
             return
         index = len(self._sets) + self._starting_index
@@ -653,7 +655,9 @@ class DirectorySplitter:
     async def _size_of(self, dir_: str) -> tuple[str, int | None, Literal['Directory', 'File']]:
         if dir_ in self._size_cache:
             cached = self._size_cache[dir_]
-            return dir_, cached, ('Directory' if isdir(dir_) else 'File')  # noqa: ASYNC240, PTH112
+            return dir_, cached, (
+                'Directory' if isdir(dir_) else 'File'
+            )  # ruff:ignore[blocking-path-method-in-async-function, os-path-isdir]
         try:
             size = await get_dir_size(dir_, progress=self._progress)
             self._size_cache[dir_] = size
@@ -681,7 +685,7 @@ class DirectorySplitter:
                 msg = f'find exited with code {proc.returncode}.'
                 raise RuntimeError(msg)
             entries = stdout.decode('utf-8').splitlines()[1:]
-            return sorted(sorted(entries), key=lambda x: not isdir(x))  # noqa: PTH112
+            return sorted(sorted(entries), key=lambda x: not isdir(x))  # ruff:ignore[os-path-isdir]
 
         if self._status_run is not None:
             return await self._status_run.run('Running find...', _run_find())

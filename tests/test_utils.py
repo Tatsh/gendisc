@@ -390,7 +390,7 @@ async def test_mogrify_label_pool_wait_without_start_raises() -> None:
 async def test_get_dir_size_with_progress_calls_count_dir_files(mocker: MockerFixture) -> None:
     import gendisc.utils as utils_mod
 
-    count_fn = utils_mod._count_dir_files  # noqa: SLF001
+    count_fn = utils_mod._count_dir_files  # ruff:ignore[private-member-access]
 
     def run_sync_side_effect(fn: object, *args: object, **_kwargs: object) -> int:
         if fn is count_fn:
@@ -413,9 +413,9 @@ async def test_mogrify_label_pool_second_start_does_not_add_workers(mocker: Mock
     mocker.patch('gendisc.utils.write_spiral_text_png', new_callable=AsyncMock)
     pool = MogrifyLabelPool(2)
     await pool.start()
-    workers_after_first = list(pool._workers)  # noqa: SLF001
+    workers_after_first = list(pool._workers)  # ruff:ignore[private-member-access]
     await pool.start()
-    assert pool._workers == workers_after_first  # noqa: SLF001
+    assert pool._workers == workers_after_first  # ruff:ignore[private-member-access]
     await pool.submit('out/label-once.png', 't', fn_prefix='p-001')
     await pool.wait_until_finished()
 
@@ -423,7 +423,7 @@ async def test_mogrify_label_pool_second_start_does_not_add_workers(mocker: Mock
 async def test_mogrify_label_pool_raises_on_invalid_queue_item() -> None:
     pool = MogrifyLabelPool(worker_count=1)
     await pool.start()
-    await pool._queue.put(object())  # noqa: SLF001
+    await pool._queue.put(object())  # ruff:ignore[private-member-access]
     with pytest.raises(TypeError, match='Unexpected item on mogrify queue'):
         await pool.wait_until_finished()
 
