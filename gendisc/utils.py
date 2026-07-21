@@ -123,8 +123,7 @@ async def _file_size(filepath: str,
             log.debug('Getting file size for `%s`.', filepath)
             return await run_sync(get_file_size, filepath)
         except OSError:
-            if isdir(
-                    filepath):  # ruff:ignore[blocking-path-method-in-async-function, os-path-isdir]
+            if Path(filepath).is_dir():  # ruff:ignore[blocking-path-method-in-async-function]
                 # On cifs with 'unix' option, directories get reported as files from walk().
                 _warn_buggy_fs_once(filepath)
                 return await get_dir_size(filepath, progress=progress)
@@ -195,8 +194,8 @@ async def get_dir_size(path: str, *, progress: SizeProgress | None = None) -> in
             continue
         filepaths = [
             path_join(basepath, filename) for filename in filenames
-            if not islink(path_join(basepath, filename)
-                          )  # ruff:ignore[blocking-path-method-in-async-function, os-path-islink]
+            if not Path(path_join(basepath, filename)).is_symlink(
+            )  # ruff:ignore[blocking-path-method-in-async-function]
         ]
         if not filepaths:
             continue
@@ -655,9 +654,7 @@ class DirectorySplitter:
     async def _size_of(self, dir_: str) -> tuple[str, int | None, Literal['Directory', 'File']]:
         if dir_ in self._size_cache:
             cached = self._size_cache[dir_]
-            return dir_, cached, (
-                'Directory' if isdir(dir_) else 'File'
-            )  # ruff:ignore[blocking-path-method-in-async-function, os-path-isdir]
+            return dir_, cached, ('Directory' if Path(dir_).is_dir() else 'File')
         try:
             size = await get_dir_size(dir_, progress=self._progress)
             self._size_cache[dir_] = size
