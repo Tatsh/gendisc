@@ -194,8 +194,7 @@ async def get_dir_size(path: str, *, progress: SizeProgress | None = None) -> in
             continue
         filepaths = [
             path_join(basepath, filename) for filename in filenames
-            if not Path(path_join(basepath, filename)).is_symlink(
-            )  # ruff:ignore[blocking-path-method-in-async-function]
+            if not Path(path_join(basepath, filename)).is_symlink()
         ]
         if not filepaths:
             continue
