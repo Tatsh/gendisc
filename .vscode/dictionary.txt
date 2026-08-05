@@ -1,5 +1,4 @@
 anchore
-Ångström
 anyio
 appdir
 appimage
@@ -23,6 +22,7 @@ commonpath
 commonprefix
 conftest
 cooldown
+coreutils
 coro
 coveragerc
 coverallsapp
@@ -155,3 +155,4 @@ yapf
 yapfignore
 yarnrc
 zizmor
+Ångström
