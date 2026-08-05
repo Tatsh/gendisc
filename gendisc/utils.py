@@ -192,9 +192,10 @@ async def get_dir_size(path: str, *, progress: SizeProgress | None = None) -> in
     for basepath, _, filenames in walk(path):
         if not filenames:
             continue
+        candidates = tuple(path_join(basepath, filename) for filename in filenames)
+        symlinks = await asyncio.gather(*(AsyncPath(x).is_symlink() for x in candidates))
         filepaths = [
-            path_join(basepath, filename) for filename in filenames
-            if not Path(path_join(basepath, filename)).is_symlink()
+            x for x, is_symlink in zip(candidates, symlinks, strict=True) if not is_symlink
         ]
         if not filepaths:
             continue
@@ -653,7 +654,7 @@ class DirectorySplitter:
     async def _size_of(self, dir_: str) -> tuple[str, int | None, Literal['Directory', 'File']]:
         if dir_ in self._size_cache:
             cached = self._size_cache[dir_]
-            return dir_, cached, ('Directory' if Path(dir_).is_dir() else 'File')
+            return dir_, cached, ('Directory' if await AsyncPath(dir_).is_dir() else 'File')
         try:
             size = await get_dir_size(dir_, progress=self._progress)
             self._size_cache[dir_] = size

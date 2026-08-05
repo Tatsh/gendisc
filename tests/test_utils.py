@@ -30,7 +30,9 @@ def mocker_fs(mocker: MockerFixture) -> None:
     mocker.patch('gendisc.utils.get_file_size', return_value=1024)
     mocker.patch('gendisc.utils.run_sync', new_callable=AsyncMock, return_value=1024)
     mocker.patch('gendisc.utils.Path')
-    mocker.patch('gendisc.utils.AsyncPath')
+    mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     mock_proc = MagicMock()
     mock_proc.communicate = AsyncMock(return_value=(b'dir1\ndir2\n', b''))
     mock_proc.returncode = 0
@@ -92,7 +94,8 @@ async def test_get_dir_size_with_progress_counts_via_run_sync(mocker: MockerFixt
 async def test_get_dir_size_skips_symlinks(mocker: MockerFixture) -> None:
     mocker.patch('gendisc.utils.walk', return_value=[('base', [], ['a', 'b'])])
     mocker.patch('gendisc.utils.isdir', return_value=True)
-    mocker.patch('gendisc.utils.islink', side_effect=[False, True, False, True])
+    mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
+    mock_async_path.return_value.is_symlink = AsyncMock(side_effect=[False, True])
     mocker.patch('gendisc.utils.run_sync', new_callable=AsyncMock, return_value=4096)
     mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
     size = await get_dir_size('dir')
@@ -118,7 +121,9 @@ async def test_get_dir_size_reports_buggy_fs_once(mocker: MockerFixture) -> None
         'gendisc.utils.walk',
         side_effect=[[('base', [], ['unique-buggy-a'])], [('base', [], ['unique-buggy-a'])],
                      [('base', [], ['unique-buggy-a'])], [('base', [], ['unique-buggy-a'])]])
-    mocker.patch('gendisc.utils.islink', return_value=False)
+    mocker.patch('gendisc.utils.Path')
+    mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     mocker.patch('gendisc.utils.run_sync',
                  new_callable=AsyncMock,
                  side_effect=[OSError, 2048, OSError, 2048])
@@ -148,7 +153,8 @@ async def test_get_dir_size_skips_when_all_entries_are_symlinks(mocker: MockerFi
     mocker.patch('gendisc.utils.walk',
                  return_value=[('base', [], ['link1', 'link2']), ('base2', [], ['real'])])
     mocker.patch('gendisc.utils.isdir', return_value=True)
-    mocker.patch('gendisc.utils.islink', side_effect=[True, True, False])
+    mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
+    mock_async_path.return_value.is_symlink = AsyncMock(side_effect=[True, True, False])
     mocker.patch('gendisc.utils.run_sync', new_callable=AsyncMock, return_value=1024)
     mocker.patch('gendisc.utils.path_join', side_effect=lambda base, f: f'{base}/{f}')
     size = await get_dir_size('dir')
@@ -246,6 +252,8 @@ async def test_directory_splitter_split(mocker: MockerFixture, mocker_fs: None) 
         AsyncMock())
     mock_async_path.return_value.__truediv__.return_value.mkdir = AsyncMock()
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     mocker.patch('gendisc.utils.get_mounts', new_callable=AsyncMock, return_value=[])
     splitter = DirectorySplitter('test_path',
                                  'prefix-' * 10,
@@ -269,6 +277,8 @@ async def test_directory_splitter_uses_drive_and_starting_index(mocker: MockerFi
         AsyncMock())
     mock_async_path.return_value.__truediv__.return_value.mkdir = AsyncMock()
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     mocker.patch('gendisc.utils.get_mounts', new_callable=AsyncMock, return_value=[])
     splitter = DirectorySplitter('test_path', 'prefix', drive='/dev/custom-drive', starting_index=7)
     await splitter.split()
@@ -290,6 +300,8 @@ async def test_directory_splitter_delete_command_in_shell(mocker: MockerFixture,
         AsyncMock())
     mock_async_path.return_value.__truediv__.return_value.mkdir = AsyncMock()
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     mocker.patch('gendisc.utils.get_mounts', new_callable=AsyncMock, return_value=[])
     splitter = DirectorySplitter('test_path', 'prefix', delete_command='rm -rf')
     await splitter.split()
@@ -309,6 +321,8 @@ async def test_directory_splitter_split_skips_cross_fs(mocker: MockerFixture,
                  return_value=mock_proc)
     mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     (mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.write_text
      ) = AsyncMock()
     mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.chmod = (
@@ -341,6 +355,8 @@ async def test_directory_splitter_label_submits_to_mogrify_pool(mocker: MockerFi
                  return_value=mock_proc)
     mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     (mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.write_text
      ) = AsyncMock()
     mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.chmod = (
@@ -440,6 +456,8 @@ async def test_directory_splitter_label_status_run_without_mogrify_pool(
                  return_value=mock_proc)
     mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     (mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.write_text
      ) = AsyncMock()
     mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.chmod = (
@@ -480,6 +498,8 @@ async def test_directory_splitter_split_file_too_large_for_bluray(mocker: Mocker
                  return_value=mock_proc)
     mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     mocker.patch('gendisc.utils.walk', return_value=[('base', [], [])])
     mocker.patch('gendisc.utils.isdir', return_value=True)
     mocker.patch('gendisc.utils.islink', return_value=False)
@@ -506,6 +526,8 @@ async def test_directory_splitter_split_file_too_large_for_bluray_already_xl(
                  return_value=mock_proc)
     mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     (mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.write_text
      ) = AsyncMock()
     mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.chmod = (
@@ -534,6 +556,8 @@ async def test_directory_splitter_split_file_too_large_for_bluray_tl_but_not_xl(
                  return_value=mock_proc)
     mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     (mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.write_text
      ) = AsyncMock()
     mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.chmod = (
@@ -569,6 +593,8 @@ async def test_directory_splitter_split_file_too_large_for_split_dir_separately(
                  side_effect=[first_proc, second_proc])
     mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     mocker.patch('gendisc.utils.walk', return_value=[('base', [], [])])
     mocker.patch('gendisc.utils.isdir', return_value=True)
     mocker.patch('gendisc.utils.islink', return_value=False)
@@ -594,6 +620,8 @@ async def test_directory_splitter_skip_files_that_raise_oserror(mocker: MockerFi
                  return_value=mock_proc)
     mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     mocker.patch('gendisc.utils.walk', return_value=[('base', [], [])])
     mocker.patch('gendisc.utils.isdir', return_value=True)
     mocker.patch('gendisc.utils.islink', return_value=False)
@@ -619,6 +647,8 @@ async def test_directory_splitter_find_nonzero_exit_raises(mocker: MockerFixture
                  return_value=mock_proc)
     mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     splitter = DirectorySplitter('test_path', 'prefix')
     with pytest.raises(RuntimeError, match=r'find exited with code 1'):
         await splitter.split()
@@ -635,6 +665,8 @@ async def test_directory_splitter_size_of_uses_cache_on_repeat(mocker: MockerFix
                  return_value=mock_proc)
     mock_async_path = mocker.patch('gendisc.utils.AsyncPath')
     mock_async_path.return_value.resolve = AsyncMock(return_value=mock_async_path.return_value)
+    mock_async_path.return_value.is_dir = AsyncMock(return_value=True)
+    mock_async_path.return_value.is_symlink = AsyncMock(return_value=False)
     (mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.write_text
      ) = AsyncMock()
     mock_async_path.return_value.__truediv__.return_value.__truediv__.return_value.chmod = (

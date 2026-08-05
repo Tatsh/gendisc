@@ -23,7 +23,6 @@ commonpath
 commonprefix
 conftest
 cooldown
-coreutils
 coro
 coveragerc
 coverallsapp
@@ -57,6 +56,7 @@ getopts
 gkops
 globaltoc
 gracetime
+handoff
 hoverxref
 htmlcov
 inkscape
@@ -121,9 +121,9 @@ shellformat
 signtool
 snapcore
 snapcraft
-softprops
 soupsieve
 sphinxcontrib
+statusline
 syft
 sysid
 tatsh
@@ -146,6 +146,7 @@ vers
 virtualenv
 volid
 wakepy
+winget
 wiswa
 wiswa's
 worktree
@@ -153,3 +154,4 @@ xcrun
 yapf
 yapfignore
 yarnrc
+zizmor
