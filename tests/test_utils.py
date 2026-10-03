@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from gendisc.utils import (
     DirectorySplitter,
     MogrifyLabelPool,
@@ -14,7 +16,6 @@ from gendisc.utils import (
     is_cross_fs,
     reload_mounts,
 )
-import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable

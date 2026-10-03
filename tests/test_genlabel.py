@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from gendisc.genlabel import (
     MogrifyNotFound,
     Point,
@@ -12,7 +14,6 @@ from gendisc.genlabel import (
     write_spiral_text_png,
     write_spiral_text_svg,
 )
-import pytest
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
