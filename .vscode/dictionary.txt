@@ -134,7 +134,6 @@ syft
 sysid
 tatsh
 testpaths
-tomlkit
 tomllib
 tomlq
 tonumber
