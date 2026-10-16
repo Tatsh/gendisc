@@ -1594,11 +1594,11 @@ wheels = [
 
 [[package]]
 name = "python-fsutil"
-version = "0.17.0"
+version = "0.18.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5b/2c/230b2228a886e11f0009aa93404f2709df2f3b1d479abfc937b53dc37bd7/python_fsutil-0.17.0.tar.gz", hash = "sha256:80d3ec6ed79b5fc5669b791aeefd9df88eb1eb027efe57d2460175bf98f37c95", size = 31120, upload-time = "2026-07-07T10:33:20.785Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c5/4f/fdbc77194c5fb58fbfe68e98548834f44da9855a7d6d02e6af075d740acd/python_fsutil-0.18.0.tar.gz", hash = "sha256:37d4bcff4f731fbc94566a1cc3f43817c0260d7c687d44f2ff535bb5c10c7985", size = 33278, upload-time = "2026-10-08T14:31:06.541Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a8/77/4a65fa715516520f3197f5a123ff51c9501c707b4508c7f4ebfaff3d349c/python_fsutil-0.17.0-py3-none-any.whl", hash = "sha256:3c0fea88c1a3403f9614d5ec9c04be929483c386bb376d33d8965a33d71fc3f4", size = 21261, upload-time = "2026-07-07T10:33:19.494Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/6c/ee141fe6ca8b4dff20f2d6c282d3ebd69e6994343de811ce76243fafd139/python_fsutil-0.18.0-py3-none-any.whl", hash = "sha256:0d3836f8d3b728f1c53ba3db4f895215733976712931f47fb2c598106e1e07cb", size = 21822, upload-time = "2026-10-08T14:31:04.829Z" },
 ]
 
 [[package]]
