@@ -72,6 +72,7 @@ launchable
 lextudio
 libera
 libjsonnet
+librsvg
 libsonnet
 linters
 manylinux
@@ -117,6 +118,7 @@ pythonhosted
 regen
 ripgreprc
 rstcheck
+rsvg
 sbclaude
 schemafile
 sdist
